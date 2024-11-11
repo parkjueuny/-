@@ -22,8 +22,7 @@ const POSITION resource_pos = { 1, 1 };
 const POSITION map_pos = { 3, 1 };
 const POSITION system_message_pos = { 20, 0 };         // 시스템 메시지 위치
 const POSITION state_pos = { 1, 62 };                  // 상태창 위치
-const POSITION command_pos = { 20, 62 };                // 명령창 위치
-
+const POSITION command_pos = { 20, 62 };               // 명령창 위치
 
 char backbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 char frontbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
@@ -39,39 +38,33 @@ void set_color(int color) {
 
 void display(
 	RESOURCE resource,
-	char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH], 
+	char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH],
 	CURSOR cursor)
 {
-
-
-
-
 	display_resource(resource);
 	display_map(map);
 	display_cursor(cursor);
 	display_system_message();
-	display_object_info();
+	display_object_info(NULL, NULL);
 	display_commands();
-	// ...
 }
 
 void display_resource(RESOURCE resource) {
 	gotoxy(resource_pos);  // 자원 상태 위치로 이동
 	set_color(COLOR_RESOURCE);
-	
+
 	printf("spice = %d/%d, population=%d/%d\n",
 		resource.spice, resource.spice_max,
 		resource.population, resource.population_max
 	);
 }
 
-// subfunction of draw_map()
 void project(char src[N_LAYER][MAP_HEIGHT][MAP_WIDTH], char dest[MAP_HEIGHT][MAP_WIDTH]) {
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
-			dest[i][j] = ' ';  // 기본적으로 빈 공간으로 초기화
+			dest[i][j] = ' ';
 			for (int k = 0; k < N_LAYER; k++) {
-				if (src[k][i][j] != 0) {  // 해당 레이어에 객체가 있는 경우
+				if (src[k][i][j] != 0) {
 					dest[i][j] = src[k][i][j];
 				}
 			}
@@ -79,22 +72,18 @@ void project(char src[N_LAYER][MAP_HEIGHT][MAP_WIDTH], char dest[MAP_HEIGHT][MAP
 	}
 }
 
-
 void display_map(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	project(map, backbuf);
 
-	// map 배열을 backbuf에 복사
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
 			backbuf[i][j] = map[0][i][j];
 		}
 	}
 
-	// 변경된 부분만 다시 그리기
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
 			if (frontbuf[i][j] != backbuf[i][j]) {
-				// 색상 설정
 				switch (backbuf[i][j]) {
 				case 'B': set_color(COLOR_BASE); break;
 				case 'H': set_color(COLOR_HARVESTER); break;
@@ -104,21 +93,15 @@ void display_map(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 				case 'R': set_color(COLOR_ROCK); break;
 				default: set_color(COLOR_DEFAULT); break;
 				}
-
-				// 커서 위치 설정 및 출력
 				gotoxy((POSITION) { i, j });
 				printf("%c", backbuf[i][j]);
 			}
-			// frontbuf에 backbuf 복사
 			frontbuf[i][j] = backbuf[i][j];
 		}
 	}
-
-	// 기본 색상으로 초기화
 	set_color(COLOR_DEFAULT);
 }
 
-// frontbuf[][]에서 커서 위치의 문자를 색만 바꿔서 그대로 다시 출력
 void display_cursor(CURSOR cursor) {
 	POSITION prev = cursor.previous;
 	POSITION curr = cursor.current;
@@ -136,7 +119,7 @@ void display_system_message(void) {
 	printf("System Messages: Game Started");
 }
 
-void display_object_info(BUILDING *building, UNIT *unit) {
+void display_object_info(BUILDING* building, UNIT* unit) {
 	gotoxy(state_pos);
 	set_color(COLOR_DEFAULT);
 	if (building != NULL) {
