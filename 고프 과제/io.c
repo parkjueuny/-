@@ -8,9 +8,7 @@ void gotoxy(POSITION pos) {
 	SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), coord);
 }
 
-void set_color(int color) {
-	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
-}
+
 
 void printc(POSITION pos, char ch, int color) {
 	if (color >= 0) {

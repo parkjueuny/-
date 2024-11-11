@@ -1,9 +1,25 @@
 ﻿#include <stdlib.h>
 #include <time.h>
 #include <assert.h>
+#include <windows.h>
+
+#define MAP_WIDTH  60
+#define MAP_HEIGHT 18
+
 #include "common.h"
 #include "io.h"
 #include "display.h"
+
+// 색상 정의 (Windows 콘솔 색상 코드)
+#define COLOR_DEFAULT 15     // 흰색 (기본 색상)
+#define COLOR_BASE 4         // 빨간색 (B)
+#define COLOR_HARVESTER 2    // 초록색 (H)
+#define COLOR_PLATE 0        // 검정색 (P)
+#define COLOR_SPICE 6        // 주황색 (5)
+#define COLOR_SANDWORM 14    // 황토색 (W)
+#define COLOR_ROCK 8         // 회색 (R)
+
+
 
 void init(void);
 void intro(void);
@@ -16,17 +32,11 @@ POSITION sample_obj_next_position(void);
 /* ================= control =================== */
 int sys_clock = 0;		// system-wide clock(ms)
 CURSOR cursor = { { 1, 1 }, {1, 1} };
-
+RESOURCE resource = { 0, 100, 0, 50 };
 
 /* ================= game data =================== */
 char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH] = { 0 };
 
-RESOURCE resource = { 
-	.spice = 0,
-	.spice_max = 0,
-	.population = 0,
-	.population_max = 0
-};
 
 OBJECT_SAMPLE obj = {
 	.pos = {1, 1},
@@ -36,41 +46,57 @@ OBJECT_SAMPLE obj = {
 	.next_move_time = 300
 };
 
+// 예제 데이터 초기화
+BUILDING buildings[] = {
+	{'B', "Base", 0, 50, "기본 건물", ' '},
+	{'P', "Plate", 1, 0, "건물 짓기 전 준비", ' '},
+	{'D', "Dormitory", 2, 10, "인구 최대치 증가", ' '},
+	{'G', "Garage", 4, 10, "스파이스 보관 최대치 증가", ' '},
+	{'B', "Barracks", 4, 20, "보병 생산", 'S'},
+	{'S', "Shelter", 5, 10, "특수 유닛 생산", 'F'},
+	{'A', "Arena", 3, 15, "투사 생산", 'F'},
+	{'F', "Factory", 5, 30, "중전차 생산", 'T'}
+};
+
+UNIT units[] = {
+	{'H', "Harvester", 2000, 5, 2000, 0, 0, 70, 'H'},
+	{'S', "Soldier", 400, 1, 15, 8, 20, 10, 'M'},
+	{'F', "Fremen", 1000, 1, 20, 15, 10, 30, 'M'},
+	{'F', "Fighter", 1200, 1, 25, 20, 10, 40, 'M'},
+	{'T', "Heavy Tank", 3000, 4, 10, 60, 4, 80, 'M'},
+	{'W', "Sandworm", 0, 0, 2500, 10000, 0, 10000, ' '}
+};
+
 /* ================= main() =================== */
 int main(void) {
 	srand((unsigned int)time(NULL));
 
-	init();
-	intro();
-	display(resource, map, cursor);
+	init();      // 초기 설정 함수 호출 (기본 맵, 리소스 등 초기화)
+	intro();     // 초기 메시지 출력 (DUNE 1.5 게임 타이틀 표시)
+	display(resource, map, cursor);  // 첫 화면 표시
 
 	while (1) {
-		// loop 돌 때마다(즉, TICK==10ms마다) 키 입력 확인
-		KEY key = get_key();
+		KEY key = get_key(); // 키 입력 대기
 
-		// 키 입력이 있으면 처리
+		// 키 입력에 따른 커서 이동 처리
 		if (is_arrow_key(key)) {
 			cursor_move(ktod(key));
 		}
-		else {
-			// 방향키 외의 입력
-			switch (key) {
-			case k_quit: outro();
-			case k_none:
-			case k_undef:
-			default: break;
-			}
+		else if (key == k_quit) {
+			outro();  // 종료 키 입력 시 outro() 호출 및 프로그램 종료
 		}
 
-		// 샘플 오브젝트 동작
+		// 샘플 오브젝트 동작 처리
 		sample_obj_move();
 
-		// 화면 출력
+		// 화면 출력 (자원, 맵, 커서, 메시지 등 표시)
 		display(resource, map, cursor);
-		Sleep(TICK);
-		sys_clock += 10;
+
+		Sleep(TICK);   // 일정 주기 동안 대기 (10ms)
+		sys_clock += 10;  // 시스템 클럭을 10ms 증가
 	}
 }
+
 
 /* ================= subfunctions =================== */
 void intro(void) {
@@ -84,31 +110,78 @@ void outro(void) {
 	exit(0);
 }
 
+
+
+
+
+
 void init(void) {
-	// layer 0(map[0])에 지형 생성
+	// Layer 0: 지형 설정 - 테두리
 	for (int j = 0; j < MAP_WIDTH; j++) {
-		map[0][0][j] = '#';
-		map[0][MAP_HEIGHT - 1][j] = '#';
+		map[0][0][j] = '#';                  // 상단 테두리
+		map[0][MAP_HEIGHT - 1][j] = '#';     // 하단 테두리
 	}
 
 	for (int i = 1; i < MAP_HEIGHT - 1; i++) {
-		map[0][i][0] = '#';
-		map[0][i][MAP_WIDTH - 1] = '#';
-		for (int j = 1; j < MAP_WIDTH-1; j++) {
-			map[0][i][j] = ' ';
+		map[0][i][0] = '#';                  // 왼쪽 테두리
+		map[0][i][MAP_WIDTH - 1] = '#';      // 오른쪽 테두리
+		for (int j = 1; j < MAP_WIDTH - 1; j++) {
+			map[0][i][j] = ' ';              // 내부 공간 초기화
 		}
 	}
 
-	// layer 1(map[1])은 비워 두기(-1로 채움)
-	for (int i = 0; i < MAP_HEIGHT; i++) {
-		for (int j = 0; j < MAP_WIDTH; j++) {
-			map[1][i][j] = -1;
-		}
-	}
+	// 지정된 좌표에 객체 배치
+	// B (Base) 배치
+	map[0][15][1] = 'B';
+	map[0][15][2] = 'B';
+	map[0][16][1] = 'B';
+	map[0][16][2] = 'B';
 
-	// object sample
-	map[1][obj.pos.row][obj.pos.column] = 'o';
+	map[0][1][57] = 'B';
+	map[0][1][58] = 'B';
+	map[0][2][57] = 'B';
+	map[0][2][58] = 'B';
+
+	// H (Harvester) 배치
+	map[1][14][1] = 'H';
+	map[1][3][58] = 'H';
+
+	// P (Plate) 배치
+	map[0][15][4] = 'P';
+	map[0][15][3] = 'P';
+	map[0][16][3] = 'P';
+	map[0][16][4] = 'P';
+
+	map[0][1][55] = 'P';
+	map[0][1][56] = 'P';
+	map[0][2][55] = 'P';
+	map[0][2][56] = 'P';
+
+	// 5 (Spice 매장량) 배치
+	map[1][9][1] = '5';
+	map[1][8][58] = '5';
+
+	// W (Sandworm) 배치
+	map[0][2][4] = 'W';
+	map[0][12][40] = 'W';
+
+	// R (Rock) 배치 - 기존 및 추가된 위치
+	map[0][10][30] = 'R';
+	map[0][10][31] = 'R';
+	map[0][11][30] = 'R';
+	map[0][11][31] = 'R';
+
+	map[0][3][28] = 'R';     // 추가된 Rock 위치
+	map[0][3][29] = 'R';
+	map[0][4][28] = 'R';
+	map[0][4][29] = 'R';
+
+	map[0][9][15] = 'R';     // 추가된 Rock 위치
+	map[0][4][45] = 'R';     // 추가된 Rock 위치
+	map[0][15][55] = 'R';    // 추가된 Rock 위치
 }
+
+
 
 // (가능하다면) 지정한 방향으로 커서 이동
 void cursor_move(DIRECTION dir) {

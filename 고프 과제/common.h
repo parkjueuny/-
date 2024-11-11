@@ -14,6 +14,11 @@
 #define MAP_WIDTH	60
 #define MAP_HEIGHT	18
 
+/* ================= 색상 정의 =================== */
+#define COLOR_RESOURCE 112   // 자원 정보 색상
+#define COLOR_DEFAULT 15     // 기본 색상
+#define COLOR_CURSOR 240     // 커서 색상
+
 
 /* ================= 위치와 방향 =================== */
 // 맵에서 위치를 나타내는 구조체
@@ -89,6 +94,28 @@ typedef struct {
 	char repr;			// 화면에 표시할 문자(representation)
 	int move_period;	// '몇 ms마다 한 칸 움직이는지'를 뜻함
 	int next_move_time;	// 다음에 움직일 시간
+	int speed;
 } OBJECT_SAMPLE;
+
+typedef struct {
+	char type;          // 건물 유형 (예: 'B' for Base, 'P' for Plate 등)
+	char name[20];      // 건물 이름
+	int cost;           // 건설 비용
+	int capacity;       // 내구도
+	char description[50]; // 설명
+	char shortcut;      // 명령어 단축키
+} BUILDING;
+
+typedef struct {
+	char type;          // 유닛 유형 (예: 'H' for Harvester)
+	char name[20];      // 유닛 이름
+	int cost;           // 생산 비용
+	int population;     // 인구수
+	int speed;          // 이동 속도
+	int attack;         // 공격력
+	int range;          // 공격 주기
+	int health;         // 체력
+	char shortcut;      // 명령어 단축키
+} UNIT;
 
 #endif
