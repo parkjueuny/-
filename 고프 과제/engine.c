@@ -116,7 +116,7 @@ void outro(void) {
 
 
 void init(void) {
-	// Layer 0: 지형 설정 - 테두리
+	// Layer 0: 지형 설정 - 테두리 343434
 	for (int j = 0; j < MAP_WIDTH; j++) {
 		map[0][0][j] = '#';                  // 상단 테두리
 		map[0][MAP_HEIGHT - 1][j] = '#';     // 하단 테두리
