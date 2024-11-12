@@ -24,8 +24,8 @@ const POSITION system_message_pos = { 20, 0 };         // 시스템 메시지 위치
 const POSITION state_pos = { 1, 62 };                  // 상태창 위치
 const POSITION command_pos = { 20, 62 };               // 명령창 위치
 
-char backbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 char frontbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
+char backbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 
 void project(char src[N_LAYER][MAP_HEIGHT][MAP_WIDTH], char dest[MAP_HEIGHT][MAP_WIDTH]);
 void display_resource(RESOURCE resource);

@@ -13,6 +13,8 @@
 #include "io.h"
 #include "display.h"
 
+extern char frontbuf[MAP_HEIGHT][MAP_WIDTH];
+
 // 색상 정의 (Windows 콘솔 색상 코드)
 #define COLOR_DEFAULT 15     // 흰색 (기본 색상)
 #define COLOR_BASE 4         // 빨간색 (B)
@@ -123,15 +125,25 @@ void outro(void) {
 void init(void) {
 	// Layer 0: 지형 설정 - 테두리 
 	for (int j = 0; j < MAP_WIDTH; j++) {
-		map[0][0][j] = '#';                  // 상단 테두리
-		map[0][MAP_HEIGHT - 1][j] = '#';     // 하단 테두리
+		map[0][0][j] = '#';
+		map[0][MAP_HEIGHT - 1][j] = '#';
+		frontbuf[0][j] = '#';
+		frontbuf[MAP_HEIGHT - 1][j] = '#';
+		backbuf[0][j] = '#';
+		backbuf[MAP_HEIGHT - 1][j] = '#';
 	}
 
 	for (int i = 1; i < MAP_HEIGHT - 1; i++) {
-		map[0][i][0] = '#';                  // 왼쪽 테두리
-		map[0][i][MAP_WIDTH - 1] = '#';      // 오른쪽 테두리
+		map[0][i][0] = '#';
+		map[0][i][MAP_WIDTH - 1] = '#';
+		frontbuf[i][0] = '#';
+		frontbuf[i][MAP_WIDTH - 1] = '#';
+		backbuf[i][0] = '#';
+		backbuf[i][MAP_WIDTH - 1] = '#';
 		for (int j = 1; j < MAP_WIDTH - 1; j++) {
-			map[0][i][j] = ' ';              // 내부 공간 초기화
+			map[0][i][j] = ' ';
+			frontbuf[i][j] = ' ';
+			backbuf[i][j] = ' ';
 		}
 	}
 
@@ -201,11 +213,19 @@ void cursor_move(DIRECTION dir) {
 	if (1 <= new_pos.row && new_pos.row <= MAP_HEIGHT - 2 &&
 		1 <= new_pos.column && new_pos.column <= MAP_WIDTH - 2) {
 
+		// 이전 위치의 'o'를 초기화 (지우기)
 		map[1][cursor.current.row][cursor.current.column] = ' ';
+		frontbuf[cursor.current.row][cursor.current.column] = ' '; // frontbuf에서도 초기화
+
+		// 커서 위치 업데이트
 		cursor.previous = cursor.current;
 		cursor.current = new_pos;
-		map[1][cursor.current.row][cursor.current.column] = 'o';
 
+		// 새로운 위치에 'o' 설정
+		map[1][cursor.current.row][cursor.current.column] = 'o';
+		frontbuf[cursor.current.row][cursor.current.column] = 'o'; // frontbuf에서도 업데이트
+
+		// 상태창 갱신: 커서 위치에 있는 지형/유닛 정보 표시
 		char current_obj = map[0][cursor.current.row][cursor.current.column];
 		BUILDING* selected_building = NULL;
 		UNIT* selected_unit = NULL;
@@ -220,6 +240,8 @@ void cursor_move(DIRECTION dir) {
 		display_object_info(selected_building, selected_unit);
 	}
 }
+
+
 
 
 
