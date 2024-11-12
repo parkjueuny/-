@@ -1,4 +1,6 @@
-﻿#include <stdlib.h>
+﻿//engine.c
+
+#include <stdlib.h>
 #include <time.h>
 #include <assert.h>
 #include <windows.h>
@@ -28,7 +30,7 @@ void outro(void);
 void cursor_move(DIRECTION dir);
 void sample_obj_move(void);
 POSITION sample_obj_next_position(void);
-
+void handle_selection(KEY key);
 
 /* ================= control =================== */
 int sys_clock = 0;		// system-wide clock(ms)
@@ -42,7 +44,7 @@ char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH] = { 0 };
 OBJECT_SAMPLE obj = {
 	.pos = {1, 1},
 	.dest = {MAP_HEIGHT - 2, MAP_WIDTH - 2},
-	.repr = 'o',
+	.repr = ' ',
 	.speed = 300,
 	.next_move_time = 300
 };
@@ -69,11 +71,12 @@ UNIT units[] = {
 };
 
 /* ================= main() =================== */
+// engine.c 파일의 main 함수에서 키 입력 처리 부분을 다음과 같이 수정합니다.
 int main(void) {
 	srand((unsigned int)time(NULL));
 
-	init();      // 초기 설정 함수 호출 (기본 맵, 리소스 등 초기화)
-	intro();     // 초기 메시지 출력 (DUNE 1.5 게임 타이틀 표시)
+	init();      // 초기 설정 함수 호출
+	intro();     // 초기 메시지 출력
 	display(resource, map, cursor);  // 첫 화면 표시
 
 	while (1) {
@@ -87,8 +90,8 @@ int main(void) {
 			outro();  // 종료 키 입력 시 outro() 호출 및 프로그램 종료
 		}
 
-		// 샘플 오브젝트 동작 처리
-		sample_obj_move();
+		// 선택(스페이스바) 및 취소(ESC 키) 핸들링
+		handle_selection(key);
 
 		// 화면 출력 (자원, 맵, 커서, 메시지 등 표시)
 		display(resource, map, cursor);
@@ -97,6 +100,7 @@ int main(void) {
 		sys_clock += 10;  // 시스템 클럭을 10ms 증가
 	}
 }
+
 
 
 /* ================= subfunctions =================== */
@@ -130,6 +134,8 @@ void init(void) {
 			map[0][i][j] = ' ';              // 내부 공간 초기화
 		}
 	}
+
+	
 
 	// 지정된 좌표에 객체 배치
 	// B (Base) 배치
@@ -181,33 +187,40 @@ void init(void) {
 	map[0][4][45] = 'R';     // 추가된 Rock 위치
 	map[0][15][55] = 'R';    // 추가된 Rock 위치
 
+	map[1][obj.pos.row][obj.pos.column] = 'o';
 	
 }
 
 
 
 // (가능하다면) 지정한 방향으로 커서 이동
-// engine.c
-
 void cursor_move(DIRECTION dir) {
 	POSITION curr = cursor.current;
 	POSITION new_pos = pmove(curr, dir);
 
-	// validation check
 	if (1 <= new_pos.row && new_pos.row <= MAP_HEIGHT - 2 &&
 		1 <= new_pos.column && new_pos.column <= MAP_WIDTH - 2) {
 
-		// 이전 위치의 'o'를 지웁니다.
 		map[1][cursor.current.row][cursor.current.column] = ' ';
-
-		// 커서 위치 업데이트
 		cursor.previous = cursor.current;
 		cursor.current = new_pos;
-
-		// 새로운 위치에 'o' 표시
 		map[1][cursor.current.row][cursor.current.column] = 'o';
+
+		char current_obj = map[0][cursor.current.row][cursor.current.column];
+		BUILDING* selected_building = NULL;
+		UNIT* selected_unit = NULL;
+
+		if (current_obj == 'B') {
+			selected_building = &buildings[0];
+		}
+		else if (current_obj == 'H') {
+			selected_unit = &units[0];
+		}
+
+		display_object_info(selected_building, selected_unit);
 	}
 }
+
 
 
 
@@ -216,7 +229,6 @@ POSITION sample_obj_next_position(void) {
 	// 현재 위치와 목적지를 비교해서 이동 방향 결정	
 	POSITION diff = psub(obj.dest, obj.pos);
 	DIRECTION dir;
-
 	// 목적지 도착. 지금은 단순히 원래 자리로 왕복
 	if (diff.row == 0 && diff.column == 0) {
 		if (obj.dest.row == 1 && obj.dest.column == 1) {
@@ -231,7 +243,7 @@ POSITION sample_obj_next_position(void) {
 		}
 		return obj.pos;
 	}
-	
+
 	// 가로축, 세로축 거리를 비교해서 더 먼 쪽 축으로 이동
 	if (abs(diff.row) >= abs(diff.column)) {
 		dir = (diff.row >= 0) ? d_down : d_up;
@@ -239,7 +251,7 @@ POSITION sample_obj_next_position(void) {
 	else {
 		dir = (diff.column >= 0) ? d_right : d_left;
 	}
-	
+
 	// validation check
 	// next_pos가 맵을 벗어나지 않고, (지금은 없지만)장애물에 부딪히지 않으면 다음 위치로 이동
 	// 지금은 충돌 시 아무것도 안 하는데, 나중에는 장애물을 피해가거나 적과 전투를 하거나... 등등
@@ -247,32 +259,50 @@ POSITION sample_obj_next_position(void) {
 	if (1 <= next_pos.row && next_pos.row <= MAP_HEIGHT - 2 && \
 		1 <= next_pos.column && next_pos.column <= MAP_WIDTH - 2 && \
 		map[1][next_pos.row][next_pos.column] < 0) {
-		
+
 		return next_pos;
 	}
 	else {
 		return obj.pos;  // 제자리
 	}
 }
-
 void sample_obj_move(void) {
-	if (sys_clock >= obj.next_move_time) {
-		// 이전 위치 지우기
-		map[1][obj.pos.row][obj.pos.column] = ' ';
-
-		// 다음 위치 계산
-		POSITION next_pos = sample_obj_next_position();
-
-		// 테두리 안쪽에서만 이동하도록 제한
-		if (next_pos.row > 0 && next_pos.row < MAP_HEIGHT - 1 &&
-			next_pos.column > 0 && next_pos.column < MAP_WIDTH - 1) {
-			obj.pos = next_pos;
-		}
-
-		// 새 위치에 'o' 표시
-		map[1][obj.pos.row][obj.pos.column] = obj.repr;
-		obj.next_move_time = sys_clock + obj.speed;
+	if (sys_clock <= obj.next_move_time) {
+		// 아직 시간이 안 됐음
+		return;
 	}
+	// 오브젝트(건물, 유닛 등)은 layer1(map[1])에 저장
+	map[1][obj.pos.row][obj.pos.column] = -1;
+	obj.pos = sample_obj_next_position();
+	map[1][obj.pos.row][obj.pos.column] = obj.repr;
+	obj.next_move_time = sys_clock + obj.speed;
 }
 
+// engine.c 파일에 새로운 handle_selection 함수 추가
+void handle_selection(KEY key) {
+	static bool is_selected = false;  // 선택 상태를 유지하는 플래그
+
+	if (key == ' ') {  // 스페이스바 눌렀을 때
+		char current_obj = map[0][cursor.current.row][cursor.current.column];
+
+		BUILDING* selected_building = NULL;
+		UNIT* selected_unit = NULL;
+
+		// 현재 개체가 BUILDING인지 UNIT인지 확인
+		if (current_obj == 'B') {
+			selected_building = &buildings[0]; // 예시로 'B'는 Base 건물로 가정
+		}
+		else if (current_obj == 'H') {
+			selected_unit = &units[0]; // 예시로 'H'는 Harvester 유닛으로 가정
+		}
+
+		// 선택된 개체에 따라 display_object_info 호출
+		display_object_info(selected_building, selected_unit);
+		is_selected = true;
+	}
+	else if (key == k_quit && is_selected) {  // ESC 키로 선택 취소
+		display_object_info(NULL, NULL);  // 빈 상태창으로 초기화
+		is_selected = false;
+	}
+}
 

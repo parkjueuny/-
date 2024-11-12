@@ -131,29 +131,23 @@ void display_system_message(void) {
 }
 
 void display_object_info(BUILDING* building, UNIT* unit) {
-	gotoxy(state_pos);
+	gotoxy(state_pos);  // 상태창 위치로 이동
 	set_color(COLOR_DEFAULT);
+
 	if (building != NULL) {
-		printf("Building: %s\n", building->name);
-		printf("Cost: %d\n", building->cost);
-		printf("Capacity: %d\n", building->capacity);
-		printf("Description: %s\n", building->description);
-		printf("Shortcut: %c\n", building->shortcut);
+		printf("Building: %s\nCost: %d\nCapacity: %d\nDescription: %s\n",
+			building->name, building->cost, building->capacity, building->description);
 	}
 	else if (unit != NULL) {
-		printf("Unit: %s\n", unit->name);
-		printf("Cost: %d\n", unit->cost);
-		printf("Population: %d\n", unit->population);
-		printf("Speed: %d\n", unit->speed);
-		printf("Attack: %d\n", unit->attack);
-		printf("Range: %d\n", unit->range);
-		printf("Health: %d\n", unit->health);
-		printf("Shortcut: %c\n", unit->shortcut);
+		printf("Unit: %s\nCost: %d\nHealth: %d\nAttack: %d\nSpeed: %d\n",
+			unit->name, unit->cost, unit->health, unit->attack, unit->speed);
 	}
 	else {
-		printf("Selected Unit/Building Info: None");
+		printf("빈 공간 또는 알 수 없는 개체");
 	}
 }
+
+
 
 void display_commands(void) {
 	gotoxy(command_pos);
