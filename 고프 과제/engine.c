@@ -2,6 +2,7 @@
 #include <time.h>
 #include <assert.h>
 #include <windows.h>
+#include <stdio.h>
 
 #define MAP_WIDTH  60
 #define MAP_HEIGHT 18
@@ -116,7 +117,7 @@ void outro(void) {
 
 
 void init(void) {
-	// Layer 0: 지형 설정 - 테두리 343434ㅇㅇ
+	// Layer 0: 지형 설정 - 테두리 
 	for (int j = 0; j < MAP_WIDTH; j++) {
 		map[0][0][j] = '#';                  // 상단 테두리
 		map[0][MAP_HEIGHT - 1][j] = '#';     // 하단 테두리
@@ -179,23 +180,36 @@ void init(void) {
 	map[0][9][15] = 'R';     // 추가된 Rock 위치
 	map[0][4][45] = 'R';     // 추가된 Rock 위치
 	map[0][15][55] = 'R';    // 추가된 Rock 위치
+
+	
 }
 
 
 
 // (가능하다면) 지정한 방향으로 커서 이동
+// engine.c
+
 void cursor_move(DIRECTION dir) {
 	POSITION curr = cursor.current;
 	POSITION new_pos = pmove(curr, dir);
 
 	// validation check
-	if (1 <= new_pos.row && new_pos.row <= MAP_HEIGHT - 2 && \
+	if (1 <= new_pos.row && new_pos.row <= MAP_HEIGHT - 2 &&
 		1 <= new_pos.column && new_pos.column <= MAP_WIDTH - 2) {
 
+		// 이전 위치의 'o'를 지웁니다.
+		map[1][cursor.current.row][cursor.current.column] = ' ';
+
+		// 커서 위치 업데이트
 		cursor.previous = cursor.current;
 		cursor.current = new_pos;
+
+		// 새로운 위치에 'o' 표시
+		map[1][cursor.current.row][cursor.current.column] = 'o';
 	}
 }
+
+
 
 /* ================= sample object movement =================== */
 POSITION sample_obj_next_position(void) {
@@ -242,15 +256,23 @@ POSITION sample_obj_next_position(void) {
 }
 
 void sample_obj_move(void) {
-	if (sys_clock <= obj.next_move_time) {
-		// 아직 시간이 안 됐음
-		return;
+	if (sys_clock >= obj.next_move_time) {
+		// 이전 위치 지우기
+		map[1][obj.pos.row][obj.pos.column] = ' ';
+
+		// 다음 위치 계산
+		POSITION next_pos = sample_obj_next_position();
+
+		// 테두리 안쪽에서만 이동하도록 제한
+		if (next_pos.row > 0 && next_pos.row < MAP_HEIGHT - 1 &&
+			next_pos.column > 0 && next_pos.column < MAP_WIDTH - 1) {
+			obj.pos = next_pos;
+		}
+
+		// 새 위치에 'o' 표시
+		map[1][obj.pos.row][obj.pos.column] = obj.repr;
+		obj.next_move_time = sys_clock + obj.speed;
 	}
-
-	// 오브젝트(건물, 유닛 등)은 layer1(map[1])에 저장
-	map[1][obj.pos.row][obj.pos.column] = -1;
-	obj.pos = sample_obj_next_position();
-	map[1][obj.pos.row][obj.pos.column] = obj.repr;
-
-	obj.next_move_time = sys_clock + obj.speed;
 }
+
+

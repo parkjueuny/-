@@ -12,13 +12,13 @@
 #define COLOR_DEFAULT 15     // 흰색 (기본 색상)
 #define COLOR_BASE 4         // 빨간색 (B)
 #define COLOR_HARVESTER 2    // 초록색 (H)
-#define COLOR_PLATE 0        // 검정색 (P)
+#define COLOR_PLATE 15       // 검정색 (P)
 #define COLOR_SPICE 6        // 주황색 (5)
 #define COLOR_SANDWORM 14    // 황토색 (W)
 #define COLOR_ROCK 8         // 회색 (R)
 
 // 출력할 내용들의 좌상단(topleft) 좌표
-const POSITION resource_pos = { 1, 1 };
+const POSITION resource_pos = { 0, 1 };
 const POSITION map_pos = { 3, 1 };
 const POSITION system_message_pos = { 20, 0 };         // 시스템 메시지 위치
 const POSITION state_pos = { 1, 62 };                  // 상태창 위치
@@ -62,28 +62,30 @@ void display_resource(RESOURCE resource) {
 void project(char src[N_LAYER][MAP_HEIGHT][MAP_WIDTH], char dest[MAP_HEIGHT][MAP_WIDTH]) {
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
-			dest[i][j] = ' ';
-			for (int k = 0; k < N_LAYER; k++) {
-				if (src[k][i][j] != 0) {
-					dest[i][j] = src[k][i][j];
+			if (i == 0 || i == MAP_HEIGHT - 1 || j == 0 || j == MAP_WIDTH - 1) {
+				dest[i][j] = '#'; // 테두리를 우선 설정
+			}
+			else {
+				dest[i][j] = src[0][i][j]; // 기본적으로 Layer 0 복사
+				// Layer 1에 있는 개체가 있으면 덮어씌움
+				if (src[1][i][j] != ' ' && src[1][i][j] != 0) {
+					dest[i][j] = src[1][i][j];
 				}
 			}
 		}
 	}
 }
 
+
+
 void display_map(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
-	project(map, backbuf);
+	project(map, backbuf); // 모든 레이어의 데이터를 backbuf로 합칩니다.
 
-	for (int i = 0; i < MAP_HEIGHT; i++) {
-		for (int j = 0; j < MAP_WIDTH; j++) {
-			backbuf[i][j] = map[0][i][j];
-		}
-	}
-
+	// 변경된 부분만 다시 그리기
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
 			if (frontbuf[i][j] != backbuf[i][j]) {
+				// 개체에 따라 색상 설정
 				switch (backbuf[i][j]) {
 				case 'B': set_color(COLOR_BASE); break;
 				case 'H': set_color(COLOR_HARVESTER); break;
@@ -91,16 +93,25 @@ void display_map(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 				case '5': set_color(COLOR_SPICE); break;
 				case 'W': set_color(COLOR_SANDWORM); break;
 				case 'R': set_color(COLOR_ROCK); break;
+				case 'o': set_color(COLOR_DEFAULT); break;
 				default: set_color(COLOR_DEFAULT); break;
 				}
-				gotoxy((POSITION) { i, j });
+
+				// 커서 위치 조정 및 그리기
+				gotoxy((POSITION) { i + 1, j }); // 테두리와 메시지를 고려해 한 칸 아래로 출력
 				printf("%c", backbuf[i][j]);
 			}
 			frontbuf[i][j] = backbuf[i][j];
 		}
 	}
-	set_color(COLOR_DEFAULT);
+	set_color(COLOR_DEFAULT); // 기본 색상으로 초기화
 }
+
+
+
+
+
+
 
 void display_cursor(CURSOR cursor) {
 	POSITION prev = cursor.previous;
