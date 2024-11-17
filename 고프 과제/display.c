@@ -8,9 +8,19 @@
 #include "display.h"
 #include "io.h"
 
-// 출력할 내용들의 좌상단(topleft) 좌표
-const POSITION resource_pos = { 0, 0 };
-const POSITION map_pos = { 1, 0 };
+// 각 영역의 좌상단 좌표 정의
+const POSITION resource_pos = { 0, 1 };               // 자원 상태
+const POSITION map_pos = { 1, 1 };                   // 맵 출력 시작 좌표
+const POSITION system_msg_pos = { MAP_HEIGHT + 1, 1 }; // 시스템 메시지
+const POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창
+const POSITION command_pos = { MAP_HEIGHT + 1, MAP_WIDTH + 2 };
+
+
+
+
+
+
+
 
 
 char backbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
@@ -27,23 +37,25 @@ void display(
 	char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH],
 	CURSOR cursor)
 {
-	display_resource(resource);
-	display_map(map);
-	display_cursor(cursor);
-	// display_system_message()
-	// display_object_info()
-	// display_commands()
-	// ...
+	display_resource(resource);       // 자원 상태 출력
+	display_map(map);                 // 맵 출력
+	display_cursor(cursor);           // 커서 출력
+	display_object_info(cursor, map); // 상태창 출력
+	display_system_message();         // 시스템 메시지 출력
+	display_commands();               // 명령창 출력
 }
 
+
+
 void display_resource(RESOURCE resource) {
-	set_color(COLOR_RESOURCE);
 	gotoxy(resource_pos);
+	set_color(COLOR_RESOURCE);
 	printf("spice = %d/%d, population=%d/%d\n",
 		resource.spice, resource.spice_max,
 		resource.population, resource.population_max
 	);
 }
+
 
 // subfunction of draw_map()
 void project(char src[N_LAYER][MAP_HEIGHT][MAP_WIDTH], char dest[MAP_HEIGHT][MAP_WIDTH]) {
@@ -83,3 +95,49 @@ void display_cursor(CURSOR cursor) {
 	ch = frontbuf[curr.row][curr.column];
 	printc(padd(map_pos, curr), ch, COLOR_CURSOR);
 }
+
+void display_system_message() {
+	gotoxy(system_msg_pos); // 시스템 메시지 위치
+	set_color(COLOR_DEFAULT);
+	printf("System Message: All systems operational.");
+}
+
+
+
+
+void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	gotoxy(object_info_pos); // 상태창 위치
+	set_color(COLOR_DEFAULT);
+
+	// 커서 위치의 객체 정보를 출력
+	char object = map[1][cursor.current.row][cursor.current.column];
+	if (object == 'H') {
+		printf("Selected Unit: Harvester");
+	}
+	else if (object == 'B') {
+		printf("Selected Unit: Base");
+	}
+	else if (object == 'P') {
+		printf("Selected Unit: Plate");
+	}
+	else if (object == '5') {
+		printf("Selected Resource: Spice Deposit");
+	}
+	else if (object == 'W') {
+		printf("Selected Unit: Sandworm");
+	}
+	else if (object == 'R') {
+		printf("Selected Terrain: Rock");
+	}
+	else {
+		printf("No object selected.");
+	}
+}
+
+void display_commands() {
+	gotoxy(command_pos); // 명령창 위치
+	set_color(COLOR_DEFAULT);
+	printf("Commands: Move, Attack, Harvest, Build");
+}
+
+

@@ -1,4 +1,6 @@
-﻿#include <stdlib.h>
+﻿//engine.c파일
+
+#include <stdlib.h>
 #include <time.h>
 #include <assert.h>
 #include "common.h"
@@ -99,16 +101,67 @@ void init(void) {
 		}
 	}
 
-	// layer 1(map[1])은 비워 두기(-1로 채움)
+	// layer 1(map[1])은 비워 두기(-1로 초기화)
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
 			map[1][i][j] = -1;
 		}
 	}
 
+	// 테두리 안 객체 배치
+	// B (Base) 배치
+	map[0][15][1] = 'B';
+	map[0][15][2] = 'B';
+	map[0][16][1] = 'B';
+	map[0][16][2] = 'B';
+
+	map[0][1][57] = 'B';
+	map[0][1][58] = 'B';
+	map[0][2][57] = 'B';
+	map[0][2][58] = 'B';
+
+	// H (Harvester) 배치
+	map[1][14][1] = 'H';
+	map[1][3][58] = 'H';
+
+	// P (Plate) 배치
+	map[0][15][4] = 'P';
+	map[0][15][3] = 'P';
+	map[0][16][3] = 'P';
+	map[0][16][4] = 'P';
+
+	map[0][1][55] = 'P';
+	map[0][1][56] = 'P';
+	map[0][2][55] = 'P';
+	map[0][2][56] = 'P';
+
+	// 5 (Spice 매장량) 배치
+	map[1][9][1] = '5';
+	map[1][8][58] = '5';
+
+	// W (Sandworm) 배치
+	map[0][2][4] = 'W';
+	map[0][12][40] = 'W';
+
+	// R (Rock) 배치 - 기존 및 추가된 위치
+	map[0][10][30] = 'R';
+	map[0][10][31] = 'R';
+	map[0][11][30] = 'R';
+	map[0][11][31] = 'R';
+
+	map[0][3][28] = 'R';     // 추가된 Rock 위치
+	map[0][3][29] = 'R';
+	map[0][4][28] = 'R';
+	map[0][4][29] = 'R';
+
+	map[0][9][15] = 'R';     // 추가된 Rock 위치
+	map[0][4][45] = 'R';     // 추가된 Rock 위치
+	map[0][15][55] = 'R';    // 추가된 Rock 위치
+
 	// object sample
 	map[1][obj.pos.row][obj.pos.column] = 'o';
 }
+
 
 // (가능하다면) 지정한 방향으로 커서 이동
 void cursor_move(DIRECTION dir) {

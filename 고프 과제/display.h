@@ -23,4 +23,8 @@ void display(
 	CURSOR cursor
 );
 
+void display_system_message();
+void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
+void display_commands();
+
 #endif
