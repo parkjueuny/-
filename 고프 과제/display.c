@@ -16,13 +16,6 @@ const POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창
 const POSITION command_pos = { MAP_HEIGHT + 1, MAP_WIDTH + 2 };
 
 
-
-
-
-
-
-
-
 char backbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 char frontbuf[MAP_HEIGHT][MAP_WIDTH] = { 0 };
 
@@ -77,12 +70,40 @@ void display_map(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
 			if (frontbuf[i][j] != backbuf[i][j]) {
 				POSITION pos = { i, j };
-				printc(padd(map_pos, pos), backbuf[i][j], COLOR_DEFAULT);
+				char ch = backbuf[i][j];
+
+				// 객체별 색상 적용
+				int color = COLOR_DEFAULT;
+				switch (ch) {
+				case 'W': color = COLOR_SANDWORM; break; // 황토색
+				case 'P': color = COLOR_PLATE; break;    // 흰색
+				case 'R': color = COLOR_ROCK; break;     // 회색
+				case '5': color = COLOR_SPICE; break;    // 주황색
+				case 'H':
+					if (i >= MAP_HEIGHT / 2) {
+						color = COLOR_BLUE;             // 왼쪽 아래 H
+					}
+					else {
+						color = COLOR_RED;              // 오른쪽 위 H
+					}
+					break;
+				case 'B':
+					if (i >= MAP_HEIGHT / 2) {
+						color = COLOR_BLUE;             // 왼쪽 아래 B
+					}
+					else {
+						color = COLOR_RED;              // 오른쪽 위 B
+					}
+					break;
+				}
+
+				printc(padd(map_pos, pos), ch, color);
 			}
 			frontbuf[i][j] = backbuf[i][j];
 		}
 	}
 }
+
 
 // frontbuf[][]에서 커서 위치의 문자를 색만 바꿔서 그대로 다시 출력
 void display_cursor(CURSOR cursor) {

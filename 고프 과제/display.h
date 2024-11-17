@@ -14,6 +14,14 @@
 #define COLOR_DEFAULT	15
 #define COLOR_CURSOR	112
 #define COLOR_RESOURCE  112
+// 색상 정의
+#define COLOR_SANDWORM 6  // 황토색
+#define COLOR_PLATE 15    // 흰색
+#define COLOR_ROCK 8      // 회색
+#define COLOR_SPICE 12  // 주황색
+#define COLOR_BLUE 9      // 푸른색
+#define COLOR_RED 4       // 빨간색
+
 
 // 지금은 자원, 맵, 커서만 표시
 // 앞으로 화면에 표시할 내용들 여기에 추가하기
