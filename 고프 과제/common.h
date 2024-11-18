@@ -3,11 +3,17 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#define NUM_BUILDINGS 8
+#define NUM_UNITS 5
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <Windows.h>
 #include <conio.h>
 #include <assert.h>
+
+
+
 
 /* ================= system parameters =================== */
 #define TICK 10		// time unit(ms)
@@ -93,5 +99,33 @@ typedef struct {
 	int next_move_time;	// 다음에 움직일 시간
 	int speed;
 } OBJECT_SAMPLE;
+
+// 유닛 속성 구조체
+typedef struct {
+	char name[16];       // 유닛 이름
+	int cost;            // 생산 비용
+	int population;      // 인구수
+	int move_speed;      // 이동 속도
+	int attack_power;    // 공격력
+	int attack_range;    // 공격 범위
+	int health;          // 체력
+	int armor;           // 방어력
+	char commands[3][16]; // 명령어 (최대 3개)
+} UNIT;
+
+// 건물 속성 구조체
+typedef struct {
+	char name[16];       // 건물 이름
+	int build_cost;      // 건설 비용
+	int capacity;        // 내구도
+	char description[64]; // 설명
+	char commands[2][16]; // 명령어 (최대 2개)
+} BUILDING;
+
+extern UNIT units[];        // 유닛 배열 선언
+extern BUILDING buildings[]; // 건물 배열 선언
+
+
+
 
 #endif

@@ -7,6 +7,7 @@
 #include "io.h"
 #include "display.h"
 
+
 void init(void);
 void intro(void);
 void outro(void);
@@ -37,6 +38,28 @@ OBJECT_SAMPLE obj = {
 	.speed = 300,
 	.next_move_time = 300
 };
+
+// 유닛 데이터 초기화
+UNIT units[] = {
+	{"Harvester", 5, 5, 2000, 0, 0, 70, 0, {"Harvest", "Move"}},
+	{"Fremen", 5, 2, 400, 15, 2, 8, 0, {"Move", "Attack"}},
+	{"Soldier", 5, 2, 800, 15, 3, 15, 0, {"Move", "Attack"}},
+	{"Fighter", 5, 2, 1500, 30, 5, 20, 0, {"Move", "Attack"}},
+	{"Heavy Tank", 5, 2, 1000, 50, 7, 50, 5, {"Move", "Attack"}}
+};
+
+// 건물 데이터 초기화
+BUILDING buildings[] = {
+	{"Base", 0, 50, "Main base. Produces Harvesters.", {"H"}},
+	{"Plate", 0, 50, "Build before constructing buildings.", {""}},
+	{"Dormitory", 2, 10, "Increases max population.", {""}},
+	{"Garage", 4, 10, "Increases spice capacity.", {""}},
+	{"Barracks", 5, 30, "Produces Soldiers.", {"S"}},
+	{"Shelter", 5, 30, "Produces Fremen.", {"F"}},
+	{"Arena", 5, 15, "Produces Fighters.", {"A"}},
+	{"Factory", 5, 30, "Produces Heavy Tanks.", {"T"}}
+};
+
 
 /* ================= main() =================== */
 int main(void) {

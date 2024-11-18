@@ -4,7 +4,7 @@
 * 맵, 커서, 시스템 메시지, 정보창, 자원 상태 등등
 * io.c에 있는 함수들을 사용함
 */
-
+#include "common.h"
 #include "display.h"
 #include "io.h"
 
@@ -35,7 +35,7 @@ void display(
 	display_cursor(cursor);           // 커서 출력
 	display_object_info(cursor, map); // 상태창 출력
 	display_system_message();         // 시스템 메시지 출력
-	display_commands();               // 명령창 출력
+	display_commands(cursor, map);               // 명령창 출력
 }
 
 
@@ -127,38 +127,61 @@ void display_system_message() {
 
 
 void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
-	gotoxy(object_info_pos); // 상태창 위치
+	POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창 위치
+	gotoxy(object_info_pos);
 	set_color(COLOR_DEFAULT);
 
-	// 커서 위치의 객체 정보를 출력
 	char object = map[1][cursor.current.row][cursor.current.column];
-	if (object == 'H') {
-		printf("Selected Unit: Harvester");
+
+	// 유닛 정보 출력
+	for (int i = 0; i < NUM_UNITS; i++) {  // NUM_UNITS 사용
+		if (object == units[i].name[0]) { // 첫 문자가 일치하는 경우
+			printf("Unit: %s\n", units[i].name);
+			printf("Cost: %d, HP: %d\n", units[i].cost, units[i].health);
+			printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
+			return;
+		}
 	}
-	else if (object == 'B') {
-		printf("Selected Unit: Base");
+
+	// 건물 정보 출력
+	for (int i = 0; i < NUM_BUILDINGS; i++) {  // NUM_BUILDINGS 사용
+		if (object == buildings[i].name[0]) { // 첫 문자가 일치하는 경우
+			printf("Building: %s\n", buildings[i].name);
+			printf("Cost: %d, Durability: %d\n", buildings[i].build_cost, buildings[i].capacity);
+			printf("Description: %s\n", buildings[i].description);
+			printf("Commands: %s\n", buildings[i].commands[0]);
+			return;
+		}
 	}
-	else if (object == 'P') {
-		printf("Selected Unit: Plate");
-	}
-	else if (object == '5') {
-		printf("Selected Resource: Spice Deposit");
-	}
-	else if (object == 'W') {
-		printf("Selected Unit: Sandworm");
-	}
-	else if (object == 'R') {
-		printf("Selected Terrain: Rock");
-	}
-	else {
-		printf("No object selected.");
-	}
+
+	// 기본 메시지
+	printf("No object selected.");
 }
 
-void display_commands() {
-	gotoxy(command_pos); // 명령창 위치
+
+void display_commands(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	POSITION command_pos = { MAP_HEIGHT + 1, MAP_WIDTH + 2 };
+	gotoxy(command_pos);
 	set_color(COLOR_DEFAULT);
-	printf("Commands: Move, Attack, Harvest, Build");
+
+	char object = map[1][cursor.current.row][cursor.current.column];
+
+	// 유닛 명령어 출력
+	for (int i = 0; i < NUM_UNITS; i++) {  // 전역 변수 사용
+		if (object == units[i].name[0]) {
+			printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
+			return;
+		}
+	}
+
+	// 건물 명령어 출력
+	for (int i = 0; i < NUM_BUILDINGS; i++) {  // 전역 변수 사용
+		if (object == buildings[i].name[0]) {
+			printf("Commands: %s\n", buildings[i].commands[0]);
+			return;
+		}
+	}
+
+	// 기본 메시지
+	printf("No commands available.");
 }
-
-
