@@ -6,6 +6,10 @@
 #define NUM_BUILDINGS 8
 #define NUM_UNITS 5
 
+#define DOUBLE_CLICK_DELAY 200  // 더블클릭 최대 시간(ms)
+#define MULTI_MOVE_DISTANCE 5   // 더블클릭 시 이동할 거리
+
+
 #include <stdio.h>
 #include <stdbool.h>
 #include <Windows.h>

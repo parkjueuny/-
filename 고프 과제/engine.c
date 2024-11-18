@@ -11,7 +11,7 @@
 void init(void);
 void intro(void);
 void outro(void);
-void cursor_move(DIRECTION dir);
+void cursor_move(DIRECTION dir,int double_click);
 void sample_obj_move(void);
 POSITION sample_obj_next_position(void);
 
@@ -62,40 +62,49 @@ BUILDING buildings[] = {
 
 
 /* ================= main() =================== */
+int last_key_time = 0;  // 마지막 키 입력 시간 기록
+
 int main(void) {
 	srand((unsigned int)time(NULL));
 
-	init();
-	intro();
+	init();                      // 게임 초기화
+	intro();                     // 게임 소개 화면
 	display(resource, map, cursor);
 
 	while (1) {
-		// loop 돌 때마다(즉, TICK==10ms마다) 키 입력 확인
-		KEY key = get_key();
+		KEY key = get_key();     // 키 입력 확인
+		int current_time = sys_clock;  // 현재 시스템 시간(ms)
 
-		// 키 입력이 있으면 처리
 		if (is_arrow_key(key)) {
-			cursor_move(ktod(key));
+			int double_click = (current_time - last_key_time <= DOUBLE_CLICK_DELAY);
+
+			// 커서 이동
+			cursor_move(ktod(key), double_click);
+
+			// 마지막 키 입력 시간 갱신
+			last_key_time = current_time;
 		}
 		else {
-			// 방향키 외의 입력
+			// 방향키 외 입력 처리
 			switch (key) {
-			case k_quit: outro();
+			case k_quit:
+				outro();  // 게임 종료
+				return 0;
 			case k_none:
 			case k_undef:
-			default: break;
+			default:
+				break;
 			}
 		}
 
-		// 샘플 오브젝트 동작
-		sample_obj_move();
-
-		// 화면 출력
-		display(resource, map, cursor);
+		sample_obj_move();       // 샘플 오브젝트 동작
+		display(resource, map, cursor);  // 화면 출력
 		Sleep(TICK);
-		sys_clock += 10;
+		sys_clock += TICK;
 	}
 }
+
+
 
 /* ================= subfunctions =================== */
 void intro(void) {
@@ -187,18 +196,38 @@ void init(void) {
 
 
 // (가능하다면) 지정한 방향으로 커서 이동
-void cursor_move(DIRECTION dir) {
+// 테두리 경계 체크 함수
+bool is_within_bounds(POSITION pos) {
+	return pos.row >= 1 && pos.row < MAP_HEIGHT - 1 &&
+		pos.column >= 1 && pos.column < MAP_WIDTH - 1;
+}
+
+// 커서 이동 함수
+void cursor_move(DIRECTION dir, int double_click) {
 	POSITION curr = cursor.current;
-	POSITION new_pos = pmove(curr, dir);
+	POSITION new_pos = curr;
 
-	// validation check
-	if (1 <= new_pos.row && new_pos.row <= MAP_HEIGHT - 2 && \
-		1 <= new_pos.column && new_pos.column <= MAP_WIDTH - 2) {
+	// 더블클릭 여부에 따른 이동 거리 설정
+	int move_distance = double_click ? MULTI_MOVE_DISTANCE : 1;
 
+	for (int i = 0; i < move_distance; i++) {
+		new_pos = pmove(new_pos, dir);
+
+		// 맵 경계 체크: 테두리 안에서만 이동 가능
+		if (!is_within_bounds(new_pos)) {
+			break; // 경계를 넘으면 이동 중단
+		}
+	}
+
+	// 커서 위치 업데이트 (경계 안에서만 갱신)
+	if (is_within_bounds(new_pos)) {
 		cursor.previous = cursor.current;
 		cursor.current = new_pos;
 	}
 }
+
+
+
 
 /* ================= sample object movement =================== */
 POSITION sample_obj_next_position(void) {
