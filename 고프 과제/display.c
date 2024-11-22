@@ -110,12 +110,28 @@ void display_cursor(CURSOR cursor) {
 	POSITION prev = cursor.previous;
 	POSITION curr = cursor.current;
 
+	// 이전 위치의 문자와 색상 복원
 	char ch = frontbuf[prev.row][prev.column];
-	printc(padd(map_pos, prev), ch, COLOR_DEFAULT);
+	int color = COLOR_DEFAULT; // 기본 색상
 
+	// 객체별 색상 적용 (display_map과 동일한 로직)
+	switch (ch) {
+	case 'W': color = COLOR_SANDWORM; break;
+	case 'P': color = COLOR_PLATE; break;
+	case 'R': color = COLOR_ROCK; break;
+	case '5': color = COLOR_SPICE; break;
+	case 'H':
+	case 'B':
+		color = (prev.row >= MAP_HEIGHT / 2) ? COLOR_BLUE : COLOR_RED;
+		break;
+	}
+	printc(padd(map_pos, prev), ch, color);
+
+	// 현재 위치의 문자 강조 (커서 색상으로 표시)
 	ch = frontbuf[curr.row][curr.column];
 	printc(padd(map_pos, curr), ch, COLOR_CURSOR);
 }
+
 
 void display_system_message() {
 	gotoxy(system_msg_pos); // 시스템 메시지 위치
@@ -128,24 +144,32 @@ void display_system_message() {
 
 void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창 위치
-	gotoxy(object_info_pos);
+	gotoxy(object_info_pos); // 상태창으로 이동
 	set_color(COLOR_DEFAULT);
 
-	char object = map[1][cursor.current.row][cursor.current.column];
+	// 상태창 초기화: 빈 공간으로 덮어쓰기
+	for (int i = 0; i < 5; i++) { // 5줄 정도 초기화 (상태창 높이에 맞게 조정)
+		gotoxy((POSITION) { object_info_pos.row + i, object_info_pos.column });
+		printf("                                                   "); // 공백 출력
+	}
+	gotoxy(object_info_pos); // 상태창 첫 줄로 다시 이동
 
-	// 유닛 정보 출력
-	for (int i = 0; i < NUM_UNITS; i++) {  // NUM_UNITS 사용
-		if (object == units[i].name[0]) { // 첫 문자가 일치하는 경우
+	// 1. `map[1]` 검사 (유닛 레이어)
+	char object = map[1][cursor.current.row][cursor.current.column];
+	for (int i = 0; i < NUM_UNITS; i++) {
+		if (object == units[i].name[0]) { // 유닛의 이름 첫 글자와 비교
 			printf("Unit: %s\n", units[i].name);
-			printf("Cost: %d, HP: %d\n", units[i].cost, units[i].health);
+			printf("Cost: %d, Population: %d\n", units[i].cost, units[i].population);
+			printf("Speed: %d, HP: %d\n", units[i].move_speed, units[i].health);
 			printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
 			return;
 		}
 	}
 
-	// 건물 정보 출력
-	for (int i = 0; i < NUM_BUILDINGS; i++) {  // NUM_BUILDINGS 사용
-		if (object == buildings[i].name[0]) { // 첫 문자가 일치하는 경우
+	// 2. `map[0]` 검사 (건물 레이어)
+	object = map[0][cursor.current.row][cursor.current.column];
+	for (int i = 0; i < NUM_BUILDINGS; i++) {
+		if (object == buildings[i].name[0]) { // 건물의 이름 첫 글자와 비교
 			printf("Building: %s\n", buildings[i].name);
 			printf("Cost: %d, Durability: %d\n", buildings[i].build_cost, buildings[i].capacity);
 			printf("Description: %s\n", buildings[i].description);
@@ -154,9 +178,31 @@ void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]
 		}
 	}
 
-	// 기본 메시지
-	printf("No object selected.");
+	// 3. 기타 객체 정보
+	switch (object) {
+	case 'W':
+		printf("Object: Sandworm\n");
+		printf("Description: Dangerous creature found in the desert.\n");
+		break;
+	case 'R':
+		printf("Object: Rock\n");
+		printf("Description: Obstacle that blocks movement.\n");
+		break;
+	case '5':
+		printf("Object: Spice Reserve\n");
+		printf("Description: Valuable resource to collect.\n");
+		break;
+	default:
+		// 기본 메시지 출력
+		printf("No object selected.");
+		break;
+	}
 }
+
+
+
+
+
 
 
 void display_commands(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
