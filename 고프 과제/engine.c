@@ -95,6 +95,10 @@ int main(void) {
 			handle_spacebar(cursor, map);  // 선택 상태 업데이트
 			display_object_info(cursor, map);  // 상태창 갱신
 		}
+		else if (key == k_escape) {  // ESC 키 감지
+			selected_object = '\0';  // 선택 취소
+			display_object_info(cursor, map);  // 상태창 초기화
+		}
 		else {
 			// 방향키 외 입력 처리
 			switch (key) {

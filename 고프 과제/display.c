@@ -139,53 +139,52 @@ void display_system_message() {
 	printf("System Message: All systems operational.");
 }
 
-void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_WIDTH][MAP_HEIGHT]) {
-	POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창 위치
-	gotoxy(object_info_pos); // 상태창으로 이동
-	set_color(COLOR_DEFAULT);
+void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+    POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창 위치
+    gotoxy(object_info_pos); // 상태창으로 이동
+    set_color(COLOR_DEFAULT);
 
-	// 상태창 초기화
-	for (int i = 0; i < 5; i++) {
-		gotoxy((POSITION) { object_info_pos.row + i, object_info_pos.column });
-		printf("                                                   ");
-	}
-	gotoxy(object_info_pos);
+    // 상태창 초기화
+    for (int i = 0; i < 5; i++) {
+        gotoxy((POSITION){object_info_pos.row + i, object_info_pos.column});
+        printf("                                                   ");
+    }
+    gotoxy(object_info_pos);
 
-	// 선택된 객체가 없을 경우 기본 메시지 출력
-	if (selected_object == '\0') {
-		printf("No object selected."); // 선택되지 않은 경우
-		return;
-	}
+    // 선택된 객체가 없을 경우 기본 메시지 출력
+    if (selected_object == '\0') {
+        printf("No object selected.");
+        return;
+    }
 
-	// 유닛 정보 출력
-	for (int i = 0; i < NUM_UNITS; i++) {
-		if (selected_object == units[i].name[0]) {
-			printf("Selected Unit: %s\n", units[i].name);
-			printf("Cost: %d, Population: %d\n", units[i].cost, units[i].population);
-			printf("Speed: %d, HP: %d\n", units[i].move_speed, units[i].health);
-			printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
-			return;
-		}
-	}
+    // 유닛 정보 출력
+    for (int i = 0; i < NUM_UNITS; i++) {
+        if (selected_object == units[i].name[0]) {
+            printf("Selected Unit: %s\n", units[i].name);
+            printf("Cost: %d, Population: %d\n", units[i].cost, units[i].population);
+            printf("Speed: %d, HP: %d\n", units[i].move_speed, units[i].health);
+            printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
+            return;
+        }
+    }
 
-	// 건물 정보 출력
-	for (int i = 0; i < NUM_BUILDINGS; i++) {
-		if (selected_object == buildings[i].name[0]) {
-			printf("Selected Building: %s\n", buildings[i].name);
-			printf("Cost: %d, Durability: %d\n", buildings[i].build_cost, buildings[i].capacity);
-			printf("Description: %s\n", buildings[i].description);
-			printf("Commands: %s\n", buildings[i].commands[0]);
-			return;
-		}
-	}
+    // 건물 정보 출력
+    for (int i = 0; i < NUM_BUILDINGS; i++) {
+        if (selected_object == buildings[i].name[0]) {
+            printf("Selected Building: %s\n", buildings[i].name);
+            printf("Cost: %d, Durability: %d\n", buildings[i].build_cost, buildings[i].capacity);
+            printf("Description: %s\n", buildings[i].description);
+            printf("Commands: %s\n", buildings[i].commands[0]);
+            return;
+        }
+    }
 
-	// 빈 지형 정보 출력
-	if (selected_object == ' ') {
-		printf("Selected Terrain: Desert\n");
-		printf("Description: A barren desert area with no resources.\n");
-	}
+    // 빈 지형 정보 출력
+    if (selected_object == ' ') {
+        printf("Selected Terrain: Desert\n");
+        printf("Description: A barren desert area with no resources.\n");
+    }
 }
-
 
 
 void display_commands(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {

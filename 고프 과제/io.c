@@ -30,6 +30,8 @@ KEY get_key(void) {
 	case 'q': return k_quit;  // 'q'를 누르면 종료
 	case ' ':
 		return ' ';  // 스페이스바 입력 처리
+	case 27:
+		return k_escape;  // ESC 키 처리
 	case 224:
 		byte = _getch();  // MSB 224가 입력 되면 1바이트 더 전달 받기
 		switch (byte) {
