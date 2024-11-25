@@ -7,7 +7,7 @@
 #define NUM_UNITS 5
 
 #define DOUBLE_CLICK_DELAY 200  // 더블클릭 최대 시간(ms)
-#define MULTI_MOVE_DISTANCE 5   // 더블클릭 시 이동할 거리
+#define MULTI_MOVE_DISTANCE 3   // 더블클릭 시 이동할 거리
 
 
 #include <stdio.h>
@@ -128,7 +128,7 @@ typedef struct {
 
 extern UNIT units[];        // 유닛 배열 선언
 extern BUILDING buildings[]; // 건물 배열 선언
-
+extern char selected_object;
 
 
 

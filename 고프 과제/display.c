@@ -139,26 +139,28 @@ void display_system_message() {
 	printf("System Message: All systems operational.");
 }
 
-
-
-
-void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_WIDTH][MAP_HEIGHT]) {
 	POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창 위치
 	gotoxy(object_info_pos); // 상태창으로 이동
 	set_color(COLOR_DEFAULT);
 
-	// 상태창 초기화: 빈 공간으로 덮어쓰기
-	for (int i = 0; i < 5; i++) { // 5줄 정도 초기화 (상태창 높이에 맞게 조정)
+	// 상태창 초기화
+	for (int i = 0; i < 5; i++) {
 		gotoxy((POSITION) { object_info_pos.row + i, object_info_pos.column });
-		printf("                                                   "); // 공백 출력
+		printf("                                                   ");
 	}
-	gotoxy(object_info_pos); // 상태창 첫 줄로 다시 이동
+	gotoxy(object_info_pos);
 
-	// 1. `map[1]` 검사 (유닛 레이어)
-	char object = map[1][cursor.current.row][cursor.current.column];
+	// 선택된 객체가 없을 경우 기본 메시지 출력
+	if (selected_object == '\0') {
+		printf("No object selected."); // 선택되지 않은 경우
+		return;
+	}
+
+	// 유닛 정보 출력
 	for (int i = 0; i < NUM_UNITS; i++) {
-		if (object == units[i].name[0]) { // 유닛의 이름 첫 글자와 비교
-			printf("Unit: %s\n", units[i].name);
+		if (selected_object == units[i].name[0]) {
+			printf("Selected Unit: %s\n", units[i].name);
 			printf("Cost: %d, Population: %d\n", units[i].cost, units[i].population);
 			printf("Speed: %d, HP: %d\n", units[i].move_speed, units[i].health);
 			printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
@@ -166,11 +168,10 @@ void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]
 		}
 	}
 
-	// 2. `map[0]` 검사 (건물 레이어)
-	object = map[0][cursor.current.row][cursor.current.column];
+	// 건물 정보 출력
 	for (int i = 0; i < NUM_BUILDINGS; i++) {
-		if (object == buildings[i].name[0]) { // 건물의 이름 첫 글자와 비교
-			printf("Building: %s\n", buildings[i].name);
+		if (selected_object == buildings[i].name[0]) {
+			printf("Selected Building: %s\n", buildings[i].name);
 			printf("Cost: %d, Durability: %d\n", buildings[i].build_cost, buildings[i].capacity);
 			printf("Description: %s\n", buildings[i].description);
 			printf("Commands: %s\n", buildings[i].commands[0]);
@@ -178,30 +179,12 @@ void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]
 		}
 	}
 
-	// 3. 기타 객체 정보
-	switch (object) {
-	case 'W':
-		printf("Object: Sandworm\n");
-		printf("Description: Dangerous creature found in the desert.\n");
-		break;
-	case 'R':
-		printf("Object: Rock\n");
-		printf("Description: Obstacle that blocks movement.\n");
-		break;
-	case '5':
-		printf("Object: Spice Reserve\n");
-		printf("Description: Valuable resource to collect.\n");
-		break;
-	default:
-		// 기본 메시지 출력
-		printf("No object selected.");
-		break;
+	// 빈 지형 정보 출력
+	if (selected_object == ' ') {
+		printf("Selected Terrain: Desert\n");
+		printf("Description: A barren desert area with no resources.\n");
 	}
 }
-
-
-
-
 
 
 

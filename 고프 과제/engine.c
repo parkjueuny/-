@@ -7,13 +7,16 @@
 #include "io.h"
 #include "display.h"
 
-
+// 선택된 객체 정보 (현재 선택된 객체의 문자를 저장)
+char selected_object = '\0';  // '\0'은 선택된 객체가 없음을 나타냄
 void init(void);
 void intro(void);
 void outro(void);
 void cursor_move(DIRECTION dir,int double_click);
 void sample_obj_move(void);
+void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 POSITION sample_obj_next_position(void);
+
 
 
 /* ================= control =================== */
@@ -71,18 +74,26 @@ int main(void) {
 	intro();                     // 게임 소개 화면
 	display(resource, map, cursor);
 
+
+
 	while (1) {
-		KEY key = get_key();     // 키 입력 확인
-		int current_time = sys_clock;  // 현재 시스템 시간(ms)
+		KEY key = get_key();  // 키 입력 확인
 
 		if (is_arrow_key(key)) {
-			int double_click = (current_time - last_key_time <= DOUBLE_CLICK_DELAY);
+			// 더블클릭 여부 확인
+			int double_click = (sys_clock - last_key_time <= DOUBLE_CLICK_DELAY);
 
 			// 커서 이동
 			cursor_move(ktod(key), double_click);
 
 			// 마지막 키 입력 시간 갱신
-			last_key_time = current_time;
+			last_key_time = sys_clock;
+
+
+		}
+		else if (key == ' ') {  // 스페이스바 입력 감지
+			handle_spacebar(cursor, map);  // 선택 상태 업데이트
+			display_object_info(cursor, map);  // 상태창 갱신
 		}
 		else {
 			// 방향키 외 입력 처리
@@ -98,12 +109,11 @@ int main(void) {
 		}
 
 		sample_obj_move();       // 샘플 오브젝트 동작
-		display(resource, map, cursor);  // 화면 출력
+		display(resource, map, cursor);    // 화면 출력
 		Sleep(TICK);
-		sys_clock += TICK;
+		sys_clock += TICK;  // 시스템 시계 업데이트
 	}
 }
-
 
 
 /* ================= subfunctions =================== */
@@ -286,3 +296,36 @@ void sample_obj_move(void) {
 
 	obj.next_move_time = sys_clock + obj.speed;
 }
+
+void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	char object = map[1][cursor.current.row][cursor.current.column];
+
+	// 유닛 선택
+	for (int i = 0; i < NUM_UNITS; i++) {
+		if (object == units[i].name[0]) {
+			selected_object = object; // 선택된 객체 저장
+			return;
+		}
+	}
+
+	// 건물 선택
+	object = map[0][cursor.current.row][cursor.current.column];
+	for (int i = 0; i < NUM_BUILDINGS; i++) {
+		if (object == buildings[i].name[0]) {
+			selected_object = object; // 선택된 객체 저장
+			return;
+		}
+	}
+
+	// 빈 지형 선택
+	if (object == ' ') {
+		selected_object = ' '; // 빈 지형으로 설정
+		return;
+	}
+
+	// 아무것도 선택되지 않음
+	selected_object = '\0';
+}
+
+
+
