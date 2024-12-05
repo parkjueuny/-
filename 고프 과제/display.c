@@ -64,45 +64,46 @@ void project(char src[N_LAYER][MAP_HEIGHT][MAP_WIDTH], char dest[MAP_HEIGHT][MAP
 }
 
 void display_map(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
-	project(map, backbuf);
+    project(map, backbuf);
 
-	for (int i = 0; i < MAP_HEIGHT; i++) {
-		for (int j = 0; j < MAP_WIDTH; j++) {
-			if (frontbuf[i][j] != backbuf[i][j]) {
-				POSITION pos = { i, j };
-				char ch = backbuf[i][j];
+    for (int i = 0; i < MAP_HEIGHT; i++) {
+        for (int j = 0; j < MAP_WIDTH; j++) {
+            if (frontbuf[i][j] != backbuf[i][j]) {
+                POSITION pos = { i, j };
+                char ch = backbuf[i][j];
 
-				// 객체별 색상 적용
-				int color = COLOR_DEFAULT;
-				switch (ch) {
-				case 'W': color = COLOR_SANDWORM; break; // 황토색
-				case 'P': color = COLOR_PLATE; break;    // 흰색
-				case 'R': color = COLOR_ROCK; break;     // 회색
-				case '5': color = COLOR_SPICE; break;    // 주황색
-				case 'H':
-					if (i >= MAP_HEIGHT / 2) {
-						color = COLOR_BLUE;             // 왼쪽 아래 H
-					}
-					else {
-						color = COLOR_RED;              // 오른쪽 위 H
-					}
-					break;
-				case 'B':
-					if (i >= MAP_HEIGHT / 2) {
-						color = COLOR_BLUE;             // 왼쪽 아래 B
-					}
-					else {
-						color = COLOR_RED;              // 오른쪽 위 B
-					}
-					break;
-				}
+                // 객체별 색상 적용
+                int color = COLOR_DEFAULT;
+                switch (ch) {
+                case 'W':
+                    color = COLOR_SANDWORM; // 샌드웜 색상
+                    break;
+                case 'P':
+                    color = COLOR_PLATE; // 흰색
+                    break;
+                case 'R':
+                    color = COLOR_ROCK; // 회색
+                    break;
+                case '5':
+                    color = COLOR_SPICE; // 주황색
+                    break;
+                case 'H': case 'B':
+                    color = (i >= MAP_HEIGHT / 2) ? COLOR_BLUE : COLOR_RED;
+                    break;
+                default:
+                    color = COLOR_DEFAULT; // 기본 색상
+                    break;
+                }
 
-				printc(padd(map_pos, pos), ch, color);
-			}
-			frontbuf[i][j] = backbuf[i][j];
-		}
-	}
+                // 객체 출력
+                printc(padd(map_pos, pos), ch, color);
+            }
+            // 화면 상태 갱신
+            frontbuf[i][j] = backbuf[i][j];
+        }
+    }
 }
+
 
 
 // frontbuf[][]에서 커서 위치의 문자를 색만 바꿔서 그대로 다시 출력

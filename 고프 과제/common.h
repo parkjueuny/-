@@ -19,6 +19,7 @@
 
 
 
+
 /* ================= system parameters =================== */
 #define TICK 10		// time unit(ms)
 
@@ -126,6 +127,15 @@ typedef struct {
 	char description[64]; // 설명
 	char commands[2][16]; // 명령어 (최대 2개)
 } BUILDING;
+
+typedef struct {
+	int row;        // 현재 위치의 행
+	int column;     // 현재 위치의 열
+	int active;     // 활성 상태 여부 (0: 비활성, 1: 활성)
+	int next_move_time; // 다음 이동 가능 시간
+	int speed;      // 이동 주기 (ms)
+} Sandworm;
+
 
 extern UNIT units[];        // 유닛 배열 선언
 extern BUILDING buildings[]; // 건물 배열 선언

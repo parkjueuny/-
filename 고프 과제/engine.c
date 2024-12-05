@@ -15,9 +15,10 @@ void outro(void);
 void cursor_move(DIRECTION dir,int double_click);
 void sample_obj_move(void);
 void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
+void update_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
+void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 POSITION sample_obj_next_position(void);
-
-
+POSITION find_closest_object(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 
 /* ================= control =================== */
 int sys_clock = 0;		// system-wide clock(ms)
@@ -74,36 +75,26 @@ int main(void) {
 	intro();                     // 게임 소개 화면
 	display(resource, map, cursor);
 
-
-
 	while (1) {
-		KEY key = get_key();  // 키 입력 확인
+		KEY key = get_key();
 
 		if (is_arrow_key(key)) {
-			// 더블클릭 여부 확인
 			int double_click = (sys_clock - last_key_time <= DOUBLE_CLICK_DELAY);
-
-			// 커서 이동
 			cursor_move(ktod(key), double_click);
-
-			// 마지막 키 입력 시간 갱신
 			last_key_time = sys_clock;
-
-
 		}
-		else if (key == ' ') {  // 스페이스바 입력 감지
-			handle_spacebar(cursor, map);  // 선택 상태 업데이트
-			display_object_info(cursor, map);  // 상태창 갱신
+		else if (key == ' ') {
+			handle_spacebar(cursor, map);
+			display_object_info(cursor, map);
 		}
-		else if (key == k_escape) {  // ESC 키 감지
-			selected_object = '\0';  // 선택 취소
-			display_object_info(cursor, map);  // 상태창 초기화
+		else if (key == k_escape) {
+			selected_object = '\0';
+			display_object_info(cursor, map);
 		}
 		else {
-			// 방향키 외 입력 처리
 			switch (key) {
 			case k_quit:
-				outro();  // 게임 종료
+				outro();
 				return 0;
 			case k_none:
 			case k_undef:
@@ -111,13 +102,18 @@ int main(void) {
 				break;
 			}
 		}
-
-		sample_obj_move();       // 샘플 오브젝트 동작
-		display(resource, map, cursor);    // 화면 출력
+		Sandworm worm;
+		initialize_sandworm(&worm, map);  // 샌드웜 초기화
+		update_sandworm(&worm, map);  // 샌드웜 업데이트
+		sample_obj_move();
+		display(resource, map, cursor);
 		Sleep(TICK);
-		sys_clock += TICK;  // 시스템 시계 업데이트
+		sys_clock += TICK;
 	}
 }
+
+
+
 
 
 /* ================= subfunctions =================== */
@@ -331,5 +327,83 @@ void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	selected_object = '\0';
 }
 
+void eat_unit(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	if (map[1][worm->row][worm->column] == 'U') {
+		map[1][worm->row][worm->column] = ' ';  // 유닛 제거
+		printf("Sandworm has eaten a unit at [%d, %d]!\n", worm->row, worm->column);
+	}
+}
 
+void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	for (int i = 0; i < MAP_HEIGHT; i++) {
+		for (int j = 0; j < MAP_WIDTH; j++) {
+			if (map[0][i][j] == 'W') {  // 샌드웜 발견
+				worm->row = i;
+				worm->column = j;
+				worm->active = 1;  // 활성화
+				worm->next_move_time = sys_clock + 1000;  // 1초 후 이동 시작
+				worm->speed = 1000;  // 1초마다 이동
+				return;
+			}
+		}
+	}
+
+	// 샌드웜이 맵에 없으면 비활성 상태로 초기화
+	worm->row = -1;
+	worm->column = -1;
+	worm->active = 0;
+	worm->next_move_time = 0;
+	worm->speed = 0;
+}
+
+void update_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	// 샌드웜이 비활성 상태라면 아무 작업도 하지 않음
+	if (!worm->active) return;
+
+	// 이동 속도 제한
+	static int next_move_time = 0; // 다음 이동 시점
+	if (sys_clock < next_move_time) return; // 아직 이동 시간이 아니라면 리턴
+
+	// 가까운 객체 찾기
+	POSITION target = find_closest_object(worm, map);
+	if (target.row == -1 || target.column == -1) return; // 이동할 대상이 없으면 종료
+
+	// 현재 위치 초기화
+	map[0][worm->row][worm->column] = ' ';
+
+	// 한 칸 이동 로직
+	if (worm->row < target.row) worm->row++;
+	else if (worm->row > target.row) worm->row--;
+
+	if (worm->column < target.column) worm->column++;
+	else if (worm->column > target.column) worm->column--;
+
+	// 새 위치에 샌드웜 갱신
+	map[0][worm->row][worm->column] = 'W';
+
+	// 다음 이동 시점 설정 (샌드웜 이동 속도: 500ms)
+	next_move_time = sys_clock + 500;
+}
+
+
+
+POSITION find_closest_object(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	int min_distance = INT_MAX;
+	POSITION closest_object = { -1, -1 };  // 초기값은 없음을 의미
+
+	for (int i = 0; i < MAP_HEIGHT; i++) {
+		for (int j = 0; j < MAP_WIDTH; j++) {
+			char obj = map[0][i][j];
+			if (obj != ' ' && obj != 'W' && obj != '#') {  // 샌드웜, 공백, 테두리 제외
+				int distance = abs(worm->row - i) + abs(worm->column - j);  // 맨해튼 거리 계산
+				if (distance < min_distance) {
+					min_distance = distance;
+					closest_object.row = i;
+					closest_object.column = j;
+				}
+			}
+		}
+	}
+	return closest_object;  // 가장 가까운 객체 반환
+}
 
