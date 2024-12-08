@@ -17,7 +17,7 @@ void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 POSITION sample_obj_next_position(void);
-POSITION find_closest_object(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
+POSITION find_closest_harvester(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 
 /* ================= control =================== */
 int sys_clock = 0;		// system-wide clock(ms)
@@ -127,6 +127,8 @@ void outro(void) {
 }
 
 void init(void) {
+	srand((unsigned int)time(NULL));
+
 	// layer 0(map[0])에 지형 생성
 	for (int j = 0; j < MAP_WIDTH; j++) {
 		map[0][0][j] = '#';
@@ -353,8 +355,8 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 				// 샌드웜 초기화
 				Sandworm worm = { .row = i, .column = j, .active = 1 };
 
-				// 가까운 객체 찾기
-				POSITION target = find_closest_object(&worm, map);
+				// 가까운 Harvester 찾기
+				POSITION target = find_closest_harvester(&worm, map);
 				if (target.row == -1 || target.column == -1) continue; // 이동할 대상이 없으면 종료
 
 				// 현재 위치 초기화
@@ -367,18 +369,41 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 				if (worm.column < target.column) worm.column++;
 				else if (worm.column > target.column) worm.column--;
 
-				// 이동 후 위치 확인 및 객체 처리
-				char target_object_layer1 = map[1][worm.row][worm.column]; // map[1] 체크
-				char target_object_layer0 = map[0][worm.row][worm.column]; // map[0] 체크
-
-				// map[1]에 유닛이 있을 경우 우선적으로 제거
-				if (target_object_layer1 != ' ' && target_object_layer1 != -1) {
-					map[1][worm.row][worm.column] = ' '; // 유닛 제거
+				// 배열 접근 전에 경계값 검사
+				if (worm.row < 0 || worm.row >= MAP_HEIGHT || worm.column < 0 || worm.column >= MAP_WIDTH) {
+					continue; // 유효하지 않은 위치면 무시
 				}
 
-				// map[0]에 객체가 있을 경우 처리 (샌드웜 자신 제외)
-				if (target_object_layer0 != ' ' && target_object_layer0 != 'W') {
-					map[0][worm.row][worm.column] = ' '; // 객체 제거
+				// 이동 후 위치 확인 및 Harvester 처리
+				if (map[1][worm.row][worm.column] == 'H') {
+					map[1][worm.row][worm.column] = ' '; // Harvester 제거
+
+					// 50% 확률로 스파이스 배설
+					if (rand() % 2 == 0) { // rand() % 2 == 0이면 50% 확률
+						int dx[] = { -1, -1, -1, 0, 0, 1, 1, 1 }; // 주변 행 변화량
+						int dy[] = { -1, 0, 1, -1, 1, -1, 0, 1 }; // 주변 열 변화량
+						POSITION candidates[8];
+						int candidate_count = 0;
+
+						// 샌드웜 주변 빈 공간 탐색
+						for (int k = 0; k < 8; k++) {
+							int new_row = worm.row + dx[k];
+							int new_col = worm.column + dy[k];
+
+							// 경계값 검사 및 빈 공간 확인
+							if (new_row >= 0 && new_row < MAP_HEIGHT &&
+								new_col >= 0 && new_col < MAP_WIDTH &&
+								map[0][new_row][new_col] == ' ') {
+								candidates[candidate_count++] = (POSITION){ new_row, new_col };
+							}
+						}
+
+						// 빈 공간이 존재하면 랜덤하게 선택하여 스파이스 배설
+						if (candidate_count > 0) {
+							POSITION spice_pos = candidates[rand() % candidate_count];
+							map[0][spice_pos.row][spice_pos.column] = '5'; // 스파이스 배설
+						}
+					}
 				}
 
 				// 이동 후 샌드웜 위치 갱신
@@ -392,25 +417,22 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 }
 
 
-POSITION find_closest_object(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+POSITION find_closest_harvester(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	int min_distance = INT_MAX;
-	POSITION closest_object = { -1, -1 };  // 초기값은 없음을 의미
+	POSITION closest_harvester = { -1, -1 };  // 초기값은 없음을 의미
 
-	for (int layer = 0; layer < N_LAYER; layer++) {  // map[0]과 map[1] 모두 확인
-		for (int i = 0; i < MAP_HEIGHT; i++) {
-			for (int j = 0; j < MAP_WIDTH; j++) {
-				char obj = map[layer][i][j];
-				if (obj != ' ' && obj != 'W' && obj != '#' && obj != -1) {  // 유효한 객체만
-					int distance = abs(worm->row - i) + abs(worm->column - j);  // 맨해튼 거리 계산
-					if (distance < min_distance) {
-						min_distance = distance;
-						closest_object.row = i;
-						closest_object.column = j;
-					}
+	for (int i = 0; i < MAP_HEIGHT; i++) {
+		for (int j = 0; j < MAP_WIDTH; j++) {
+			if (map[1][i][j] == 'H') {  // Harvester만 탐색
+				int distance = abs(worm->row - i) + abs(worm->column - j);  // 맨해튼 거리 계산
+				if (distance < min_distance) {
+					min_distance = distance;
+					closest_harvester.row = i;
+					closest_harvester.column = j;
 				}
 			}
 		}
 	}
 
-	return closest_object;  // 가장 가까운 객체 반환
+	return closest_harvester;  // 가장 가까운 Harvester 반환
 }
