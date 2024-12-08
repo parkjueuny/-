@@ -13,9 +13,8 @@ void init(void);
 void intro(void);
 void outro(void);
 void cursor_move(DIRECTION dir,int double_click);
-void sample_obj_move(void);
 void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
-void update_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
+void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 POSITION sample_obj_next_position(void);
 POSITION find_closest_object(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
@@ -104,8 +103,7 @@ int main(void) {
 		}
 		Sandworm worm;
 		initialize_sandworm(&worm, map);  // 샌드웜 초기화
-		update_sandworm(&worm, map);  // 샌드웜 업데이트
-		sample_obj_move();
+		update_sandworms(map);  // 샌드웜 업데이트
 		display(resource, map, cursor);
 		Sleep(TICK);
 		sys_clock += TICK;
@@ -200,8 +198,7 @@ void init(void) {
 	map[0][4][45] = 'R';     // 추가된 Rock 위치
 	map[0][15][55] = 'R';    // 추가된 Rock 위치
 
-	// object sample
-	map[1][obj.pos.row][obj.pos.column] = 'o';
+	
 }
 
 
@@ -283,19 +280,6 @@ POSITION sample_obj_next_position(void) {
 	}
 }
 
-void sample_obj_move(void) {
-	if (sys_clock <= obj.next_move_time) {
-		// 아직 시간이 안 됐음
-		return;
-	}
-
-	// 오브젝트(건물, 유닛 등)은 layer1(map[1])에 저장
-	map[1][obj.pos.row][obj.pos.column] = -1;
-	obj.pos = sample_obj_next_position();
-	map[1][obj.pos.row][obj.pos.column] = obj.repr;
-
-	obj.next_move_time = sys_clock + obj.speed;
-}
 
 void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	char object = map[1][cursor.current.row][cursor.current.column];
@@ -356,54 +340,77 @@ void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH
 	worm->speed = 0;
 }
 
-void update_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
-	// 샌드웜이 비활성 상태라면 아무 작업도 하지 않음
-	if (!worm->active) return;
+void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	static int next_move_times[MAP_HEIGHT][MAP_WIDTH] = { 0 }; // 각 위치의 이동 시간 관리
 
-	// 이동 속도 제한
-	static int next_move_time = 0; // 다음 이동 시점
-	if (sys_clock < next_move_time) return; // 아직 이동 시간이 아니라면 리턴
+	for (int i = 0; i < MAP_HEIGHT; i++) {
+		for (int j = 0; j < MAP_WIDTH; j++) {
+			// 현재 위치에 샌드웜이 있는 경우
+			if (map[0][i][j] == 'W') {
+				// 이동 가능 시간 체크
+				if (sys_clock < next_move_times[i][j]) continue;
 
-	// 가까운 객체 찾기
-	POSITION target = find_closest_object(worm, map);
-	if (target.row == -1 || target.column == -1) return; // 이동할 대상이 없으면 종료
+				// 샌드웜 초기화
+				Sandworm worm = { .row = i, .column = j, .active = 1 };
 
-	// 현재 위치 초기화
-	map[0][worm->row][worm->column] = ' ';
+				// 가까운 객체 찾기
+				POSITION target = find_closest_object(&worm, map);
+				if (target.row == -1 || target.column == -1) continue; // 이동할 대상이 없으면 종료
 
-	// 한 칸 이동 로직
-	if (worm->row < target.row) worm->row++;
-	else if (worm->row > target.row) worm->row--;
+				// 현재 위치 초기화
+				map[0][worm.row][worm.column] = ' '; // 현재 샌드웜 위치를 비움
 
-	if (worm->column < target.column) worm->column++;
-	else if (worm->column > target.column) worm->column--;
+				// 한 칸 이동 로직
+				if (worm.row < target.row) worm.row++;
+				else if (worm.row > target.row) worm.row--;
 
-	// 새 위치에 샌드웜 갱신
-	map[0][worm->row][worm->column] = 'W';
+				if (worm.column < target.column) worm.column++;
+				else if (worm.column > target.column) worm.column--;
 
-	// 다음 이동 시점 설정 (샌드웜 이동 속도: 500ms)
-	next_move_time = sys_clock + 500;
+				// 이동 후 위치 확인 및 객체 처리
+				char target_object_layer1 = map[1][worm.row][worm.column]; // map[1] 체크
+				char target_object_layer0 = map[0][worm.row][worm.column]; // map[0] 체크
+
+				// map[1]에 유닛이 있을 경우 우선적으로 제거
+				if (target_object_layer1 != ' ' && target_object_layer1 != -1) {
+					map[1][worm.row][worm.column] = ' '; // 유닛 제거
+				}
+
+				// map[0]에 객체가 있을 경우 처리 (샌드웜 자신 제외)
+				if (target_object_layer0 != ' ' && target_object_layer0 != 'W') {
+					map[0][worm.row][worm.column] = ' '; // 객체 제거
+				}
+
+				// 이동 후 샌드웜 위치 갱신
+				map[0][worm.row][worm.column] = 'W'; // 샌드웜 위치 업데이트
+
+				// 다음 이동 시간 갱신
+				next_move_times[worm.row][worm.column] = sys_clock + 1000; // 1초 후 이동
+			}
+		}
+	}
 }
-
 
 
 POSITION find_closest_object(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	int min_distance = INT_MAX;
 	POSITION closest_object = { -1, -1 };  // 초기값은 없음을 의미
 
-	for (int i = 0; i < MAP_HEIGHT; i++) {
-		for (int j = 0; j < MAP_WIDTH; j++) {
-			char obj = map[0][i][j];
-			if (obj != ' ' && obj != 'W' && obj != '#') {  // 샌드웜, 공백, 테두리 제외
-				int distance = abs(worm->row - i) + abs(worm->column - j);  // 맨해튼 거리 계산
-				if (distance < min_distance) {
-					min_distance = distance;
-					closest_object.row = i;
-					closest_object.column = j;
+	for (int layer = 0; layer < N_LAYER; layer++) {  // map[0]과 map[1] 모두 확인
+		for (int i = 0; i < MAP_HEIGHT; i++) {
+			for (int j = 0; j < MAP_WIDTH; j++) {
+				char obj = map[layer][i][j];
+				if (obj != ' ' && obj != 'W' && obj != '#' && obj != -1) {  // 유효한 객체만
+					int distance = abs(worm->row - i) + abs(worm->column - j);  // 맨해튼 거리 계산
+					if (distance < min_distance) {
+						min_distance = distance;
+						closest_object.row = i;
+						closest_object.column = j;
+					}
 				}
 			}
 		}
 	}
+
 	return closest_object;  // 가장 가까운 객체 반환
 }
-

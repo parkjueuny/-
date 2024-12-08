@@ -9,6 +9,8 @@
 #define DOUBLE_CLICK_DELAY 200  // 더블클릭 최대 시간(ms)
 #define MULTI_MOVE_DISTANCE 3   // 더블클릭 시 이동할 거리
 
+#define NUM_SANDWORMS 2  // 샌드웜 개수
+
 
 #include <stdio.h>
 #include <stdbool.h>
