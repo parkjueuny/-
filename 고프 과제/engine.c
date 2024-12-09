@@ -1,5 +1,6 @@
 ﻿//engine.c파일
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <time.h>
 #include <assert.h>
@@ -18,6 +19,7 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
 POSITION sample_obj_next_position(void);
 POSITION find_closest_harvester(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]);
+bool is_base_selected();
 
 /* ================= control =================== */
 int sys_clock = 0;		// system-wide clock(ms)
@@ -44,24 +46,59 @@ OBJECT_SAMPLE obj = {
 
 // 유닛 데이터 초기화
 UNIT units[] = {
-	{"Harvester", 5, 5, 2000, 0, 0, 70, 0, {"Harvest", "Move"}},
-	{"Fremen", 5, 2, 400, 15, 2, 8, 0, {"Move", "Attack"}},
-	{"Soldier", 5, 2, 800, 15, 3, 15, 0, {"Move", "Attack"}},
-	{"Fighter", 5, 2, 1500, 30, 5, 20, 0, {"Move", "Attack"}},
-	{"Heavy Tank", 5, 2, 1000, 50, 7, 50, 5, {"Move", "Attack"}}
+	{'H', "Harvester", 5, 5, 2000, 0, 0, 70, 0, {"H: Harvest", "M: Move"}},
+	{'F', "Fremen", 5, 2, 400, 15, 2, 8, 0, {"M: 이동", "P: 순찰"}},
+	{'S', "Soldier", 5, 2, 800, 15, 3, 15, 0, {"M: 이동", "P: 순찰"}},
+	{'F', "Fighter", 5, 2, 1500, 30, 5, 20, 0, {"M: 이동", "P: 순찰"}},
+	{'T', "Heavy Tank", 5, 2, 1000, 50, 7, 50, 5, {"M: 이동", "P: 순찰"}}
 };
 
 // 건물 데이터 초기화
 BUILDING buildings[] = {
-	{"Base", 0, 50, "Main base. Produces Harvesters.", {"H"}},
-	{"Plate", 0, 50, "Build before constructing buildings.", {""}},
-	{"Dormitory", 2, 10, "Increases max population.", {""}},
-	{"Garage", 4, 10, "Increases spice capacity.", {""}},
-	{"Barracks", 5, 30, "Produces Soldiers.", {"S"}},
-	{"Shelter", 5, 30, "Produces Fremen.", {"F"}},
-	{"Arena", 5, 15, "Produces Fighters.", {"A"}},
-	{"Factory", 5, 30, "Produces Heavy Tanks.", {"T"}}
+	{'B', "본진(Base)", 0, 50, "Main base. Produces Harvesters.", {"H: 하베스터 생산"}},
+	{'P', "장판(Plate)", 0, 50, "건물 짓기 전에 깔기", {""}},
+	{'D', "숙소(Dormitory)", 2, 10, "인구 최대치 증가(10).", {""}},
+	{'G', "창고(Garage)", 4, 10, "Increases spice capacity.", {""}},
+	{'b', "병영(Barracks)", 5, 30, "Produces Soldiers.", {"보병 생산(S: Soldier)"}},
+	{'S', "은신처(Shelter)", 5, 30, "Produces Fremen.", {"프레멘 생산(F: Fremen)"}},
+	{'A', "투기장(Arena)", 5, 15, "Produces Fighters.", {"투사 생산(F: Fighter)"}},
+	{'F', "공장(Factory)", 5, 30, "특수유닛 생산.", {"중전차 생산(T: Heavy Tank)"}}
 };
+
+void produce_harvester(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH], RESOURCE* resource) {
+	// 자원 및 인구 수 확인
+	if (resource->spice < 5) {
+		display_system_message("자원이 부족합니다.");
+		return;
+	}
+	if (resource->population + 1 > resource->population_max) {
+		display_system_message("인구 수가 최대치입니다.");
+		return;
+	}
+
+	// 본진 주변 빈 공간에 하베스터 배치
+	POSITION base_pos = cursor.current;  // 현재 커서 위치(본진)
+	POSITION offsets[] = {
+		{ -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }  // 위, 아래, 왼쪽, 오른쪽
+	};
+
+	for (int i = 0; i < 4; i++) {
+		int new_row = base_pos.row + offsets[i].row;
+		int new_col = base_pos.column + offsets[i].column;
+
+		if (is_within_bounds((POSITION) { new_row, new_col }) && map[1][new_row][new_col] == -1) {
+			// 하베스터 배치
+			map[1][new_row][new_col] = 'H';
+			resource->spice -= 5;
+			resource->population++;
+			display_system_message("새로운 하베스터 생산 완료!");
+			return;
+		}
+	}
+
+	// 빈 공간이 없으면 실패 메시지
+	display_system_message("하베스터를 배치할 공간이 없습니다.");
+}
 
 
 /* ================= main() =================== */
@@ -86,6 +123,10 @@ int main(void) {
 			handle_spacebar(cursor, map);
 			display_object_info(cursor, map);
 		}
+		else if (key == 'H' && is_base_selected()) {
+			produce_harvester(map, &resource); // 하베스터 생산
+			display(resource, map, cursor);   // 화면 업데이트
+		}
 		else if (key == k_escape) {
 			selected_object = '\0';
 			display_object_info(cursor, map);
@@ -101,18 +142,12 @@ int main(void) {
 				break;
 			}
 		}
-		Sandworm worm;
-		initialize_sandworm(&worm, map);  // 샌드웜 초기화
 		update_sandworms(map);  // 샌드웜 업데이트
 		display(resource, map, cursor);
 		Sleep(TICK);
 		sys_clock += TICK;
 	}
 }
-
-
-
-
 
 /* ================= subfunctions =================== */
 void intro(void) {
@@ -210,6 +245,9 @@ bool is_within_bounds(POSITION pos) {
 	return pos.row >= 1 && pos.row < MAP_HEIGHT - 1 &&
 		pos.column >= 1 && pos.column < MAP_WIDTH - 1;
 }
+bool is_base_selected() {
+	return selected_object == 'B'; // 선택된 객체가 본진(B)인지 확인
+}
 
 // 커서 이동 함수
 void cursor_move(DIRECTION dir, int double_click) {
@@ -282,36 +320,40 @@ POSITION sample_obj_next_position(void) {
 	}
 }
 
-
 void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
+	// Layer 1에서 유닛 탐색
 	char object = map[1][cursor.current.row][cursor.current.column];
-
-	// 유닛 선택
 	for (int i = 0; i < NUM_UNITS; i++) {
-		if (object == units[i].name[0]) {
-			selected_object = object; // 선택된 객체 저장
+		if (object == units[i].symbol) {
+			selected_object = object;
+			display_object_info(cursor, map);
 			return;
 		}
 	}
 
-	// 건물 선택
+	// Layer 0에서 건물 탐색
 	object = map[0][cursor.current.row][cursor.current.column];
 	for (int i = 0; i < NUM_BUILDINGS; i++) {
-		if (object == buildings[i].name[0]) {
-			selected_object = object; // 선택된 객체 저장
+		if (object == buildings[i].symbol) {
+			selected_object = object;
+			display_object_info(cursor, map);
 			return;
 		}
 	}
 
 	// 빈 지형 선택
 	if (object == ' ') {
-		selected_object = ' '; // 빈 지형으로 설정
+		selected_object = ' ';
+		display_object_info(cursor, map);
 		return;
 	}
 
 	// 아무것도 선택되지 않음
 	selected_object = '\0';
+	display_object_info(cursor, map);
 }
+
+
 
 void eat_unit(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	if (map[1][worm->row][worm->column] == 'U') {
@@ -345,6 +387,9 @@ void initialize_sandworm(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH
 void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 	static int next_move_times[MAP_HEIGHT][MAP_WIDTH] = { 0 }; // 각 위치의 이동 시간 관리
 
+	int dx[] = { -1, 1, 0, 0 }; // 위, 아래, 왼쪽, 오른쪽
+	int dy[] = { 0, 0, -1, 1 };
+
 	for (int i = 0; i < MAP_HEIGHT; i++) {
 		for (int j = 0; j < MAP_WIDTH; j++) {
 			// 현재 위치에 샌드웜이 있는 경우
@@ -359,24 +404,33 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 				POSITION target = find_closest_harvester(&worm, map);
 				if (target.row == -1 || target.column == -1) continue; // 이동할 대상이 없으면 종료
 
+				int min_distance = INT_MAX;
+				POSITION next_pos = { worm.row, worm.column }; // Sandworm의 위치를 POSITION으로 변환
+
+				// 이동 가능한 모든 방향 검사
+				for (int k = 0; k < 4; k++) {
+					int new_row = worm.row + dx[k];
+					int new_col = worm.column + dy[k];
+
+					// 경계값 검사 및 바위 확인
+					if (new_row >= 0 && new_row < MAP_HEIGHT &&
+						new_col >= 0 && new_col < MAP_WIDTH &&
+						map[0][new_row][new_col] != 'R') {
+
+						int distance = abs(target.row - new_row) + abs(target.column - new_col);
+						if (distance < min_distance) {
+							min_distance = distance;
+							next_pos = (POSITION){ new_row, new_col };
+						}
+					}
+				}
+
 				// 현재 위치 초기화
 				map[0][worm.row][worm.column] = ' '; // 현재 샌드웜 위치를 비움
 
-				// 한 칸 이동 로직
-				if (worm.row < target.row) worm.row++;
-				else if (worm.row > target.row) worm.row--;
-
-				if (worm.column < target.column) worm.column++;
-				else if (worm.column > target.column) worm.column--;
-
-				// 배열 접근 전에 경계값 검사
-				if (worm.row < 0 || worm.row >= MAP_HEIGHT || worm.column < 0 || worm.column >= MAP_WIDTH) {
-					continue; // 유효하지 않은 위치면 무시
-				}
-
 				// 이동 후 위치 확인 및 Harvester 처리
-				if (map[1][worm.row][worm.column] == 'H') {
-					map[1][worm.row][worm.column] = ' '; // Harvester 제거
+				if (map[1][next_pos.row][next_pos.column] == 'H') {
+					map[1][next_pos.row][next_pos.column] = ' '; // Harvester 제거
 
 					// 50% 확률로 스파이스 배설
 					if (rand() % 2 == 0) { // rand() % 2 == 0이면 50% 확률
@@ -387,8 +441,8 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 
 						// 샌드웜 주변 빈 공간 탐색
 						for (int k = 0; k < 8; k++) {
-							int new_row = worm.row + dx[k];
-							int new_col = worm.column + dy[k];
+							int new_row = next_pos.row + dx[k];
+							int new_col = next_pos.column + dy[k];
 
 							// 경계값 검사 및 빈 공간 확인
 							if (new_row >= 0 && new_row < MAP_HEIGHT &&
@@ -407,14 +461,15 @@ void update_sandworms(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 				}
 
 				// 이동 후 샌드웜 위치 갱신
-				map[0][worm.row][worm.column] = 'W'; // 샌드웜 위치 업데이트
+				map[0][next_pos.row][next_pos.column] = 'W'; // 샌드웜 위치 업데이트
 
 				// 다음 이동 시간 갱신
-				next_move_times[worm.row][worm.column] = sys_clock + 1000; // 1초 후 이동
+				next_move_times[next_pos.row][next_pos.column] = sys_clock + 1000; // 1초 후 이동
 			}
 		}
 	}
 }
+
 
 
 POSITION find_closest_harvester(Sandworm* worm, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {

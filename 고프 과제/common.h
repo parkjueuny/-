@@ -3,6 +3,7 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+
 #define NUM_BUILDINGS 8
 #define NUM_UNITS 5
 
@@ -110,24 +111,26 @@ typedef struct {
 
 // 유닛 속성 구조체
 typedef struct {
-	char name[16];       // 유닛 이름
-	int cost;            // 생산 비용
-	int population;      // 인구수
-	int move_speed;      // 이동 속도
-	int attack_power;    // 공격력
-	int attack_range;    // 공격 범위
-	int health;          // 체력
-	int armor;           // 방어력
-	char commands[3][16]; // 명령어 (최대 3개)
+	char symbol;          // 맵에서 사용되는 문자
+	char name[16];        // 유닛 이름
+	int cost;             // 생산 비용
+	int population;       // 인구수
+	int move_speed;       // 이동 속도
+	int attack_power;     // 공격력
+	int attack_range;     // 공격 범위
+	int health;           // 체력
+	int armor;            // 방어력
+	char commands[3][100];// 명령어 (최대 3개)
 } UNIT;
 
 // 건물 속성 구조체
 typedef struct {
-	char name[16];       // 건물 이름
-	int build_cost;      // 건설 비용
-	int capacity;        // 내구도
-	char description[64]; // 설명
-	char commands[2][16]; // 명령어 (최대 2개)
+	char symbol;          // 맵에서 사용되는 문자
+	char name[100];       // 건물 이름
+	int build_cost;       // 건설 비용
+	int capacity;         // 내구도
+	char description[100];// 설명
+	char commands[2][34]; // 명령어 (최대 2개)
 } BUILDING;
 
 typedef struct {
@@ -143,6 +146,8 @@ extern UNIT units[];        // 유닛 배열 선언
 extern BUILDING buildings[]; // 건물 배열 선언
 extern char selected_object;
 
+bool is_within_bounds(POSITION pos);
 
 
 #endif
+

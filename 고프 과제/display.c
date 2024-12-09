@@ -7,6 +7,9 @@
 #include "common.h"
 #include "display.h"
 #include "io.h"
+#include <string.h>
+#define MAX_MSG_LENGTH 50
+static char system_message[MAX_MSG_LENGTH] = "All systems operational."; // 시스템 메시지 저장 변수
 
 // 각 영역의 좌상단 좌표 정의
 const POSITION resource_pos = { 0, 1 };               // 자원 상태
@@ -34,8 +37,8 @@ void display(
 	display_map(map);                 // 맵 출력
 	display_cursor(cursor);           // 커서 출력
 	display_object_info(cursor, map); // 상태창 출력
-	display_system_message();         // 시스템 메시지 출력
 	display_commands(cursor, map);               // 명령창 출력
+	display_system_message(NULL);
 }
 
 
@@ -132,84 +135,117 @@ void display_cursor(CURSOR cursor) {
 	printc(padd(map_pos, curr), ch, COLOR_CURSOR);
 }
 
-
-void display_system_message() {
+void display_system_message(const char* message) {
+	// 시스템 메시지 출력
 	gotoxy(system_msg_pos); // 시스템 메시지 위치
 	set_color(COLOR_DEFAULT);
-	printf("System Message: All systems operational.");
+	printf("시스템 메시지");
+
+	// 메시지 내용 출력
+	POSITION message_content_pos = { system_msg_pos.row + 1, system_msg_pos.column };
+	gotoxy(message_content_pos);
+	printf("                                          "); // 초기화
+	gotoxy(message_content_pos);
+	printf("%s", system_message);
 }
+
+
+
 
 void display_object_info(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
-    POSITION object_info_pos = { 1, MAP_WIDTH + 2 }; // 상태창 위치
-    gotoxy(object_info_pos); // 상태창으로 이동
-    set_color(COLOR_DEFAULT);
+	// 상태창 제목 고정 출력
+	gotoxy(object_info_pos);
+	set_color(COLOR_DEFAULT);
+	printf("상태창\n");
 
-    // 상태창 초기화
-    for (int i = 0; i < 5; i++) {
-        gotoxy((POSITION){object_info_pos.row + i, object_info_pos.column});
-        printf("                                                   ");
-    }
-    gotoxy(object_info_pos);
+	// 상태창 초기화
+	POSITION content_pos = { object_info_pos.row + 1, object_info_pos.column };
+	for (int i = 0; i < 5; i++) {
+		gotoxy((POSITION) { content_pos.row + i, content_pos.column });
+		printf("                          "); // 상태창 영역만 초기화
+	}
 
-    // 선택된 객체가 없을 경우 기본 메시지 출력
-    if (selected_object == '\0') {
-        printf("No object selected.");
-        return;
-    }
+	gotoxy(content_pos);
 
-    // 유닛 정보 출력
-    for (int i = 0; i < NUM_UNITS; i++) {
-        if (selected_object == units[i].name[0]) {
-            printf("Selected Unit: %s\n", units[i].name);
-            printf("Cost: %d, Population: %d\n", units[i].cost, units[i].population);
-            printf("Speed: %d, HP: %d\n", units[i].move_speed, units[i].health);
-            printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
-            return;
-        }
-    }
+	if (selected_object == '\0') {
+		// 상태창에 기본 메시지 출력
+		gotoxy(content_pos);
+		printf("선택된 객체 없음.");
+		return;
+	}
 
-    // 건물 정보 출력
-    for (int i = 0; i < NUM_BUILDINGS; i++) {
-        if (selected_object == buildings[i].name[0]) {
-            printf("Selected Building: %s\n", buildings[i].name);
-            printf("Cost: %d, Durability: %d\n", buildings[i].build_cost, buildings[i].capacity);
-            printf("Description: %s\n", buildings[i].description);
-            printf("Commands: %s\n", buildings[i].commands[0]);
-            return;
-        }
-    }
+	// 유닛 정보 출력
+	for (int i = 0; i < NUM_UNITS; i++) {
+		if (selected_object == units[i].symbol) {
+			gotoxy(content_pos);
+			printf("유닛: %s", units[i].name);
 
-    // 빈 지형 정보 출력
-    if (selected_object == ' ') {
-        printf("Selected Terrain: Desert\n");
-        printf("Description: A barren desert area with no resources.\n");
-    }
+			gotoxy((POSITION) { content_pos.row + 1, content_pos.column });
+			printf("비용: %d, 인구수: %d", units[i].cost, units[i].population);
+
+			gotoxy((POSITION) { content_pos.row + 2, content_pos.column });
+			printf("속도: %d, 체력: %d", units[i].move_speed, units[i].health);
+			return;
+		}
+	}
+
+	// 건물 정보 출력
+	for (int i = 0; i < NUM_BUILDINGS; i++) {
+		if (selected_object == buildings[i].symbol) {
+			gotoxy(content_pos);
+			printf("건물: %s", buildings[i].name);
+
+			gotoxy((POSITION) { content_pos.row + 1, content_pos.column });
+			printf("비용: %d, 내구도: %d", buildings[i].build_cost, buildings[i].capacity);
+
+			gotoxy((POSITION) { content_pos.row + 2, content_pos.column });
+			printf("설명: %s", buildings[i].description);
+			return;
+		}
+	}
+
+	// 빈 지형 정보 출력
+	if (selected_object == ' ') {
+		gotoxy(content_pos);
+		printf("지형: 사막");
+
+		gotoxy((POSITION) { content_pos.row + 1, content_pos.column });
+		printf("건물을 지을 수 없음");
+	}
 }
 
-
 void display_commands(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
-	POSITION command_pos = { MAP_HEIGHT + 1, MAP_WIDTH + 2 };
 	gotoxy(command_pos);
 	set_color(COLOR_DEFAULT);
+	printf("명령창\n");
 
-	char object = map[1][cursor.current.row][cursor.current.column];
+	// 명령창 초기화
+	POSITION content_pos = { command_pos.row + 1, command_pos.column };
+	gotoxy(content_pos);
+	printf("                                          "); // 초기화
+	gotoxy(content_pos);
+
+	if (selected_object == '\0') {
+		printf("명령 없음.");
+		return;
+	}
 
 	// 유닛 명령어 출력
-	for (int i = 0; i < NUM_UNITS; i++) {  // 전역 변수 사용
-		if (object == units[i].name[0]) {
-			printf("Commands: %s, %s\n", units[i].commands[0], units[i].commands[1]);
+	for (int i = 0; i < NUM_UNITS; i++) {
+		if (selected_object == units[i].symbol) {
+			printf("%s, %s", units[i].commands[0], units[i].commands[1]);
 			return;
 		}
 	}
 
 	// 건물 명령어 출력
-	for (int i = 0; i < NUM_BUILDINGS; i++) {  // 전역 변수 사용
-		if (object == buildings[i].name[0]) {
-			printf("Commands: %s\n", buildings[i].commands[0]);
+	for (int i = 0; i < NUM_BUILDINGS; i++) {
+		if (selected_object == buildings[i].symbol) {
+			printf("%s", buildings[i].commands[0]);
 			return;
 		}
 	}
 
-	// 기본 메시지
-	printf("No commands available.");
+	printf("명령 없음.");
 }
+
