@@ -7,6 +7,7 @@
 #include "common.h"
 #include "io.h"
 #include "display.h"
+#include <ctype.h>
 
 // 선택된 객체 정보 (현재 선택된 객체의 문자를 저장)
 char selected_object = '\0';  // '\0'은 선택된 객체가 없음을 나타냄
@@ -66,39 +67,29 @@ BUILDING buildings[] = {
 };
 
 void produce_harvester(char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH], RESOURCE* resource) {
-	// 자원 및 인구 수 확인
-	if (resource->spice < 5) {
-		display_system_message("자원이 부족합니다.");
-		return;
-	}
-	if (resource->population + 1 > resource->population_max) {
-		display_system_message("인구 수가 최대치입니다.");
+	// 자원이 충분한지 확인
+	if (resource->spice < 5 || resource->population + 1 > resource->population_max) {
+		display_system_message("자원이 부족하거나 인구 수가 최대치입니다.");
 		return;
 	}
 
-	// 본진 주변 빈 공간에 하베스터 배치
-	POSITION base_pos = cursor.current;  // 현재 커서 위치(본진)
-	POSITION offsets[] = {
-		{ -1, 0 }, { 1, 0 }, { 0, -1 }, { 0, 1 }  // 위, 아래, 왼쪽, 오른쪽
-	};
+	POSITION base_pos = cursor.current; // 본진의 위치
+	POSITION harvester_pos = { base_pos.row - 1, base_pos.column }; // 본진 위쪽 위치
 
-	for (int i = 0; i < 4; i++) {
-		int new_row = base_pos.row + offsets[i].row;
-		int new_col = base_pos.column + offsets[i].column;
-
-		if (is_within_bounds((POSITION) { new_row, new_col }) && map[1][new_row][new_col] == -1) {
-			// 하베스터 배치
-			map[1][new_row][new_col] = 'H';
-			resource->spice -= 5;
-			resource->population++;
-			display_system_message("새로운 하베스터 생산 완료!");
-			return;
-		}
+	// 본진 위에 빈 공간이 있는지 확인
+	if (harvester_pos.row >= 0 && harvester_pos.row < MAP_HEIGHT && harvester_pos.column >= 0 && harvester_pos.column < MAP_WIDTH && map[1][harvester_pos.row][harvester_pos.column] == -1) {
+		map[1][harvester_pos.row][harvester_pos.column] = 'H'; // 하베스터 배치
+		resource->spice -= 5; // 비용 차감
+		resource->population++; // 인구 증가
+		display_system_message("새로운 하베스터 생산 완료!");
 	}
-
-	// 빈 공간이 없으면 실패 메시지
-	display_system_message("하베스터를 배치할 공간이 없습니다.");
+	else {
+		// 본진 위에 빈 공간이 없다면 배치 실패 메시지 출력
+		display_system_message("본진 위에 하베스터를 배치할 공간이 없습니다.");
+	}
 }
+
+
 
 
 /* ================= main() =================== */
@@ -123,7 +114,7 @@ int main(void) {
 			handle_spacebar(cursor, map);
 			display_object_info(cursor, map);
 		}
-		else if (key == 'H' && is_base_selected()) {
+		else if (tolower(key) == 'h' && is_base_selected()) {
 			produce_harvester(map, &resource); // 하베스터 생산
 			display(resource, map, cursor);   // 화면 업데이트
 		}
@@ -142,12 +133,14 @@ int main(void) {
 				break;
 			}
 		}
+
 		update_sandworms(map);  // 샌드웜 업데이트
 		display(resource, map, cursor);
 		Sleep(TICK);
 		sys_clock += TICK;
 	}
 }
+
 
 /* ================= subfunctions =================== */
 void intro(void) {
@@ -348,10 +341,18 @@ void handle_spacebar(CURSOR cursor, char map[N_LAYER][MAP_HEIGHT][MAP_WIDTH]) {
 		return;
 	}
 
-	// 아무것도 선택되지 않음
-	selected_object = '\0';
-	display_object_info(cursor, map);
+	// 본진 선택 처리
+	if (object == 'B') {
+		selected_object = 'B'; // 본진 선택
+		display_object_info(cursor, map);
+	}
+	else {
+		// 아무것도 선택되지 않음
+		selected_object = '\0';
+		display_object_info(cursor, map);
+	}
 }
+
 
 
 
